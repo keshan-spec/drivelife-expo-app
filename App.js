@@ -1,7 +1,8 @@
-import { Button, SafeAreaView } from "react-native";
+import { SafeAreaView } from "react-native";
 import { WebView } from 'react-native-webview'
 import OneSignal from 'react-native-onesignal';
 import Constants from 'expo-constants';
+import 'expo-dev-client';
 
 import { useEffect, useState } from 'react';
 import { requestLocationPermission, getExternalUIDInWP, setExpoTokenInWP } from './utils'

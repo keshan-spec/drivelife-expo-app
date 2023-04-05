@@ -1,30 +1,65 @@
 {
   "expo": {
-    "name": "carcal-v1",
+    "name": "Carcalendar",
     "slug": "carcal-v1",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/app-icon.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/app-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#0000"
     },
     "assetBundlePatterns": [
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.app.carcalendar"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/app-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.app.carcalendar"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/app-icon.png"
+    },
+    "plugins": [
+      [
+        "onesignal-expo-plugin",
+        {
+          "mode": "production"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "build": {
+          "experimental": {
+            "ios": {
+              "appExtensions": [
+                {
+                  "targetName": "OneSignalNotificationServiceExtension",
+                  "bundleIdentifier": "com.app.carcalendar.OneSignalNotificationServiceExtension",
+                  "entitlements": {
+                    "com.apple.security.application-groups": [
+                      "group.com.app.carcalendar.onesignal"
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "projectId": "14e276c1-3f3c-426f-9aa7-48c93153527f"
+      },
+      "onesignal": {
+        "app_id": "a4c4e8da-6b85-478f-a458-6a3a4c5ceb39"
+      }
     }
   }
 }

@@ -5,7 +5,8 @@
 - Run `npx expo start` to start up the Metro Bundler, now you can either run the app in an emulator running in your machine. Or run it on your physical device using the Expo Go/Client App. 
 
 ```
-Note: Expo will not link the OneSignal plugin if you run the `npx expo start` command. The app will function, but OneSignal will not work.
+Note: Expo will not link the OneSignal plugin if you run the `npx expo start` command. 
+The app will function, but OneSignal will not work.
 ```
 
 - Run `expo prebuild`. This creates the build folders. `android/` & `/ios`.

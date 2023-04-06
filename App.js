@@ -5,13 +5,16 @@ import Constants from 'expo-constants';
 import 'expo-dev-client';
 
 import { useEffect, useState } from 'react';
-import { requestLocationPermission, getExternalUIDInWP, setExpoTokenInWP } from './utils'
+import { requestLocationPermission, getExternalUIDInWP, requestNotificationPermission } from './utils'
 
 export default function App() {
   const [carcalSession, setcarcalSession] = useState('');
+  const [onesignalRegistered, setOnesignalRegistered] = useState(false);
 
   useEffect(() => {
-    requestLocationPermission();
+    requestLocationPermission()
+    requestNotificationPermission()
+
     OneSignal.setAppId(Constants.manifest.extra.onesignal.app_id);
 
     OneSignal.setNotificationWillShowInForegroundHandler((notificationReceivedEvent) => {
@@ -19,7 +22,7 @@ export default function App() {
       let notifId = notification.notificationId;
       let title = notification.title;
 
-      console.log('OneSignal: notification will show in foreground: ', notifId, title);
+      console.log(`OneSignal New Notif> ID: ${notifId}, Title: ${title}`);
 
       notificationReceivedEvent.complete(notification);
     });
@@ -32,10 +35,28 @@ export default function App() {
       console.log('OneSignal IAM clicked:', event);
     });
 
+    if (carcalSession) {
+      console.log(`Found carcalSession: ${carcalSession}`);
+      getExternalUIDInWP(carcalSession).then((id) => {
+        // format the external user id
+        // remove ""
+        id = id.replace(/"/g, '');
+        // remove spaces
+        id = id.replace(/\s/g, '');
+        console.log(`Found external UID: ${id}`);
+
+        // Set the external user id in OneSignal
+        if (id && !onesignalRegistered) {
+          OneSignal.setExternalUserId(id);
+          setOnesignalRegistered(true);
+        }
+      });
+    }
+
     return () => {
       OneSignal.clearHandlers();
     }
-  }, []);
+  }, [carcalSession]);
 
   const INJECTED_JAVASCRIPT = `(function() {
     const allData = window.localStorage.getItem('ccevents_ukey');
@@ -48,26 +69,10 @@ export default function App() {
     }
   };
 
-  if (carcalSession) {
-    console.log(`Found carcalSession: ${carcalSession}`);
-    getExternalUIDInWP(carcalSession).then((id) => {
-      // format the external user id
-      // remove ""
-      id = id.replace(/"/g, '');
-      // remove spaces
-      id = id.replace(/\s/g, '');
-      console.log(`Found external UID: ${id}`);
-
-      // Set the external user id in OneSignal
-      if (id) {
-        OneSignal.setExternalUserId(id);
-      }
-    });
-  }
-
   return (
     <SafeAreaView style={{
       flex: 1,
+      marginTop: Constants.statusBarHeight,
     }}>
       <WebView
         source={{ uri: 'http://appdev.carcalendar.co.uk/index.php' }}

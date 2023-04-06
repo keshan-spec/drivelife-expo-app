@@ -4,25 +4,35 @@ export const requestLocationPermission = async () => {
     try {
         // if permission is granted, then return true
         if (await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION)) {
+            console.log('You can use the LOCATION');
             return true;
         }
 
-        const granted = await PermissionsAndroid.request(
-            PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-            {
-                title: 'CarCalendar Location Permission',
-                message:
-                    'CarCalendar needs access to your location ' +
-                    'so you can see events near you.',
-                buttonNeutral: 'Ask Me Later',
-                buttonNegative: 'Cancel',
-                buttonPositive: 'OK',
-            },
-        );
+        const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION);
         if (granted === PermissionsAndroid.RESULTS.GRANTED) {
             console.log('You can use the LOCATION');
         } else {
             console.log('LOCATION permission denied');
+        }
+    } catch (err) {
+        console.warn(err);
+    }
+};
+
+// requst notification permission
+export const requestNotificationPermission = async () => {
+    try {
+        // if permission is granted, then return true
+        if (await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS)) {
+            console.log('You can use the NOTIFICATION');
+            return true;
+        }
+
+        const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
+        if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+            console.log('You can use the NOTIFICATION');
+        } else {
+            console.log('NOTIFICATION permission denied');
         }
     } catch (err) {
         console.warn(err);

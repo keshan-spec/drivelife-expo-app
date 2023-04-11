@@ -23,12 +23,12 @@ export const requestLocationPermission = async () => {
 export const requestNotificationPermission = async () => {
     try {
         // if permission is granted, then return true
-        if (await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS)) {
+        if (await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATION)) {
             console.log('You can use the NOTIFICATION');
             return true;
         }
 
-        const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
+        const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATION);
         if (granted === PermissionsAndroid.RESULTS.GRANTED) {
             console.log('You can use the NOTIFICATION');
         } else {
@@ -61,7 +61,7 @@ export async function setExpoTokenInWP(token) {
 
 export async function getExternalUIDInWP(carcalSession) {
     // send request to server to save token
-    let url = 'https://www.carcalendar.co.uk/wp-json/expoapi/v1/get_external_uid';
+    let url = 'https://staging1.carcalendar.co.uk/wp-json/expoapi/v1/get_external_uid';
     let data = {
         token: carcalSession,
     };

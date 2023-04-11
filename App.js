@@ -10,12 +10,20 @@ import { requestLocationPermission, getExternalUIDInWP, requestNotificationPermi
 export default function App() {
   const [carcalSession, setcarcalSession] = useState('');
   const [onesignalRegistered, setOnesignalRegistered] = useState(false);
+  const [playerId, setPlayerId] = useState('');
 
   useEffect(() => {
+    OneSignal.setAppId(Constants.manifest.extra.onesignal.app_id);
+
+    async function getOnesignalDeviceID() {
+      let deviceState = await OneSignal.getDeviceState();
+      setPlayerId(deviceState.userId);
+      console.log(`Device ID: ${playerId}`);
+    }
+
+    getOnesignalDeviceID()
     requestLocationPermission()
     requestNotificationPermission()
-
-    OneSignal.setAppId(Constants.manifest.extra.onesignal.app_id);
 
     OneSignal.setNotificationWillShowInForegroundHandler((notificationReceivedEvent) => {
       let notification = notificationReceivedEvent.getNotification();
@@ -72,10 +80,9 @@ export default function App() {
   return (
     <SafeAreaView style={{
       flex: 1,
-      marginTop: Constants.statusBarHeight,
     }}>
       <WebView
-        source={{ uri: 'http://appdev.carcalendar.co.uk/index.php' }}
+        source={{ uri: `https://staging1.carcalendar.co.uk/app/app.php?pid=${playerId}` }}
         injectedJavaScript={INJECTED_JAVASCRIPT}
         onMessage={onMessage}
       />

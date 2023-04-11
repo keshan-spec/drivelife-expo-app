@@ -43,28 +43,29 @@ export default function App() {
       console.log('OneSignal IAM clicked:', event);
     });
 
-    if (carcalSession) {
-      console.log(`Found carcalSession: ${carcalSession}`);
-      getExternalUIDInWP(carcalSession).then((id) => {
-        // format the external user id
-        // remove ""
-        id = id.replace(/"/g, '');
-        // remove spaces
-        id = id.replace(/\s/g, '');
-        console.log(`Found external UID: ${id}`);
-
-        // Set the external user id in OneSignal
-        if (id && !onesignalRegistered) {
-          OneSignal.setExternalUserId(id);
-          setOnesignalRegistered(true);
-        }
-      });
-    }
 
     return () => {
       OneSignal.clearHandlers();
     }
-  }, [carcalSession]);
+  }, [playerId]);
+
+  if (carcalSession) {
+    console.log(`Found carcalSession: ${carcalSession}`);
+    getExternalUIDInWP(carcalSession).then((id) => {
+      // format the external user id
+      // remove ""
+      id = id.replace(/"/g, '');
+      // remove spaces
+      id = id.replace(/\s/g, '');
+      console.log(`Found external UID: ${id}`);
+
+      // Set the external user id in OneSignal
+      if (id && !onesignalRegistered) {
+        OneSignal.setExternalUserId(id);
+        setOnesignalRegistered(true);
+      }
+    });
+  }
 
   const INJECTED_JAVASCRIPT = `(function() {
     const allData = window.localStorage.getItem('ccevents_ukey');

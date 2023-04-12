@@ -1,4 +1,4 @@
-import { SafeAreaView } from "react-native";
+import { SafeAreaView, Text } from "react-native";
 import { WebView } from 'react-native-webview'
 import OneSignal from 'react-native-onesignal';
 import Constants from 'expo-constants';
@@ -15,13 +15,19 @@ export default function App() {
   useEffect(() => {
     OneSignal.setAppId(Constants.manifest.extra.onesignal.app_id);
 
-    async function getOnesignalDeviceID() {
-      let deviceState = await OneSignal.getDeviceState();
-      setPlayerId(deviceState.userId);
-      console.log(`Device ID: ${playerId}`);
-    }
+    OneSignal.addSubscriptionObserver((event) => {
+      // if event.to is true, the user is subscribed
+      console.log(`OneSignal Subscription Changed: ${event}`);
+      if (event.to) {
+        // get user id 
+        OneSignal.getDeviceState().then((deviceState) => {
+          console.log(`OneSignal Player ID: ${deviceState.userId}`);
+          setPlayerId(deviceState.userId);
+        });
+      }
 
-    getOnesignalDeviceID()
+    });
+
     requestLocationPermission()
     requestNotificationPermission()
 

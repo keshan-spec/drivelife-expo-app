@@ -1,23 +1,35 @@
 import { SafeAreaView, Text } from "react-native";
+import { useEffect, useState } from 'react';
 import { WebView } from 'react-native-webview'
 import OneSignal from 'react-native-onesignal';
 import Constants from 'expo-constants';
 import 'expo-dev-client';
+import Geolocation from '@react-native-community/geolocation';
 
-import { useEffect, useState } from 'react';
-import { requestLocationPermission, getExternalUIDInWP, requestNotificationPermission } from './utils'
+
+
+import { maybeSetUserLocation, requestLocationPermission, getExternalUIDInWP, requestNotificationPermission } from './utils'
 
 export default function App() {
   const [carcalSession, setcarcalSession] = useState('');
   const [onesignalRegistered, setOnesignalRegistered] = useState(false);
   const [playerId, setPlayerId] = useState('');
+  const [location, setLocation] = useState();
+
+  const getCurrentPosition = () => {
+    Geolocation.getCurrentPosition((pos) => {
+      if (pos.coords) setLocation(pos.coords);
+      },(error) => Alert.alert('GetCurrentPosition Error', JSON.stringify(error)),
+      { enableHighAccuracy: true }
+    );
+  };
 
   useEffect(() => {
     OneSignal.setAppId(Constants.manifest.extra.onesignal.app_id);
 
     OneSignal.addSubscriptionObserver((event) => {
       // if event.to is true, the user is subscribed
-      console.log(`OneSignal Subscription Changed: ${event}`);
+      // console.log(`OneSignal Subscription Changed: ${event}`);
       if (event.to) {
         // get user id 
         OneSignal.getDeviceState().then((deviceState) => {
@@ -25,10 +37,14 @@ export default function App() {
           setPlayerId(deviceState.userId);
         });
       }
-
     });
 
-    requestLocationPermission()
+    requestLocationPermission().then((res) => {
+      if (res === true) {
+        getCurrentPosition();
+        console.log('Location permission granted');
+      }
+    })
     requestNotificationPermission()
 
     OneSignal.setNotificationWillShowInForegroundHandler((notificationReceivedEvent) => {
@@ -49,11 +65,10 @@ export default function App() {
       console.log('OneSignal IAM clicked:', event);
     });
 
-
     return () => {
       OneSignal.clearHandlers();
     }
-  }, [playerId]);
+  }, []);
 
   if (carcalSession) {
     console.log(`Found carcalSession: ${carcalSession}`);
@@ -64,6 +79,11 @@ export default function App() {
       // remove spaces
       id = id.replace(/\s/g, '');
       console.log(`Found external UID: ${id}`);
+      if (location && location !== null) {
+        maybeSetUserLocation(location, id).then((res) => {
+          console.log(`Location status : ${res}`);
+        })
+      }
 
       // Set the external user id in OneSignal
       if (id && !onesignalRegistered) {
@@ -83,6 +103,7 @@ export default function App() {
       setcarcalSession(payload.nativeEvent.data);
     }
   };
+
 
   return (
     <SafeAreaView style={{

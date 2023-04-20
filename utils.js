@@ -4,15 +4,14 @@ export const requestLocationPermission = async () => {
     try {
         // if permission is granted, then return true
         if (await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION)) {
-            console.log('You can use the LOCATION');
             return true;
         }
 
         const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION);
         if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-            console.log('You can use the LOCATION');
+            return true;
         } else {
-            console.log('LOCATION permission denied');
+            return false;
         }
     } catch (err) {
         console.warn(err);
@@ -64,6 +63,26 @@ export async function getExternalUIDInWP(carcalSession) {
     let url = 'https://staging1.carcalendar.co.uk/wp-json/expoapi/v1/get_external_uid';
     let data = {
         token: carcalSession,
+    };
+
+    let response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+    })
+
+    let json = await response.json();
+    return json;
+}
+
+export async function maybeSetUserLocation(coords, uid) {
+    // send request to server to save token
+    let url = 'https://staging1.carcalendar.co.uk/wp-json/expoapi/v1/set_user_location';
+    let data = {
+        coords: coords,
+        user_id: uid
     };
 
     let response = await fetch(url, {

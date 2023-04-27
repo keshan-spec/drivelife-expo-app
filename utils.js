@@ -1,4 +1,5 @@
 import { PermissionsAndroid } from 'react-native';
+import { Permissions } from 'expo-permissions';
 
 export const requestLocationPermission = async () => {
     try {
@@ -22,16 +23,15 @@ export const requestLocationPermission = async () => {
 export const requestNotificationPermission = async () => {
     try {
         // if permission is granted, then return true
-        if (await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATION)) {
-            console.log('You can use the NOTIFICATION');
+        if (await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS)) {
             return true;
         }
 
-        const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATION);
+        const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
         if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-            console.log('You can use the NOTIFICATION');
+            return true;
         } else {
-            console.log('NOTIFICATION permission denied');
+            return false;
         }
     } catch (err) {
         console.warn(err);

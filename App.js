@@ -7,7 +7,6 @@ import 'expo-dev-client';
 import Geolocation from '@react-native-community/geolocation';
 
 
-
 import { maybeSetUserLocation, requestLocationPermission, getExternalUIDInWP, requestNotificationPermission } from './utils'
 
 export default function App() {
@@ -19,6 +18,7 @@ export default function App() {
   const appState = useRef(AppState.currentState);
   const [appStateVisible, setAppStateVisible] = useState(appState.current);
 
+  // Get the users current location
   const getCurrentPosition = () => {
     Geolocation.getCurrentPosition((pos) => {
       if (pos.coords) setLocation(pos.coords);
@@ -27,6 +27,7 @@ export default function App() {
     );
   };
 
+  // OneSignal Initialization
   useEffect(() => {
     OneSignal.setAppId(Constants.manifest.extra.onesignal.app_id);
     OneSignal.addSubscriptionObserver((event) => {
@@ -41,6 +42,12 @@ export default function App() {
       }
     });
 
+    requestNotificationPermission().then((res) => {
+      if (res === true) {
+        console.log('Notification permission granted');
+      }
+    })
+
     requestLocationPermission().then((res) => {
       if (res === true) {
         console.log('Location permission granted');
@@ -48,7 +55,7 @@ export default function App() {
       }
     })
 
-    requestNotificationPermission()
+
 
     OneSignal.setNotificationWillShowInForegroundHandler((notificationReceivedEvent) => {
       let notification = notificationReceivedEvent.getNotification();
@@ -73,6 +80,8 @@ export default function App() {
     }
   }, []);
 
+
+  // Handles the AppState
   useEffect(() => {
     const subscription = AppState.addEventListener('change', nextAppState => {
       if (
@@ -97,6 +106,8 @@ export default function App() {
     };
   }, []);
 
+  // Set the external user id in OneSignal 
+  // Set the user location in WP
   if (carcalSession) {
     (async () => {
       const id = await getExternalUIDInWP(carcalSession);
@@ -123,7 +134,6 @@ export default function App() {
       setcarcalSession(payload.nativeEvent.data);
     }
   };
-
 
   return (
     <SafeAreaView style={{

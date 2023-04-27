@@ -74,7 +74,12 @@ export async function getExternalUIDInWP(carcalSession) {
     })
 
     let json = await response.json();
-    return json;
+    // format the external user id
+    // remove ""
+    id = json.replace(/"/g, '');
+    // remove spaces
+    id = id.replace(/\s/g, '');
+    return id;
 }
 
 export async function maybeSetUserLocation(coords, uid) {

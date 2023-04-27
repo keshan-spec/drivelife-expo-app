@@ -1,5 +1,5 @@
-import { SafeAreaView, Text } from "react-native";
-import { useEffect, useState } from 'react';
+import { SafeAreaView, Text, AppState } from "react-native";
+import { useEffect, useState, useRef } from 'react';
 import { WebView } from 'react-native-webview'
 import OneSignal from 'react-native-onesignal';
 import Constants from 'expo-constants';
@@ -16,6 +16,9 @@ export default function App() {
   const [playerId, setPlayerId] = useState('');
   const [location, setLocation] = useState();
 
+  const appState = useRef(AppState.currentState);
+  const [appStateVisible, setAppStateVisible] = useState(appState.current);
+
   const getCurrentPosition = () => {
     Geolocation.getCurrentPosition((pos) => {
       if (pos.coords) setLocation(pos.coords);
@@ -26,7 +29,6 @@ export default function App() {
 
   useEffect(() => {
     OneSignal.setAppId(Constants.manifest.extra.onesignal.app_id);
-
     OneSignal.addSubscriptionObserver((event) => {
       // if event.to is true, the user is subscribed
       // console.log(`OneSignal Subscription Changed: ${event}`);
@@ -41,10 +43,11 @@ export default function App() {
 
     requestLocationPermission().then((res) => {
       if (res === true) {
-        getCurrentPosition();
         console.log('Location permission granted');
+        getCurrentPosition();
       }
     })
+
     requestNotificationPermission()
 
     OneSignal.setNotificationWillShowInForegroundHandler((notificationReceivedEvent) => {
@@ -66,23 +69,40 @@ export default function App() {
     });
 
     return () => {
-      OneSignal.clearHandlers();
+      OneSignal.clearHandlers()
     }
   }, []);
 
-  if (carcalSession) {
-    console.log(`Found carcalSession: ${carcalSession}`);
-    getExternalUIDInWP(carcalSession).then((id) => {
-      // format the external user id
-      // remove ""
-      id = id.replace(/"/g, '');
-      // remove spaces
-      id = id.replace(/\s/g, '');
-      console.log(`Found external UID: ${id}`);
-      if (location && location !== null) {
-        maybeSetUserLocation(location, id).then((res) => {
-          console.log(`Location status : ${res}`);
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', nextAppState => {
+      if (
+        appState.current.match(/inactive|background/) &&
+        nextAppState === 'active'
+      ) {
+        console.log('App has come to the foreground!');
+        requestLocationPermission().then((res) => {
+          if (res === true) {
+            getCurrentPosition();
+          }
         })
+      }
+
+      appState.current = nextAppState;
+      setAppStateVisible(appState.current);
+      console.log('AppState', appState.current);
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
+  if (carcalSession) {
+    (async () => {
+      const id = await getExternalUIDInWP(carcalSession);
+      if (location && location !== null) {
+        const res = await maybeSetUserLocation(location, id);
+        console.log(`Location status : ${res}`);
       }
 
       // Set the external user id in OneSignal
@@ -90,7 +110,7 @@ export default function App() {
         OneSignal.setExternalUserId(id);
         setOnesignalRegistered(true);
       }
-    });
+    })();
   }
 
   const INJECTED_JAVASCRIPT = `(function() {

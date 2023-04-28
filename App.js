@@ -14,6 +14,7 @@ export default function App() {
   const [onesignalRegistered, setOnesignalRegistered] = useState(false);
   const [playerId, setPlayerId] = useState('');
   const [location, setLocation] = useState();
+  const [permissionsLocation, setPermissionsLocation] = useState({denied: false, granted: false});
 
   const appState = useRef(AppState.currentState);
   const [appStateVisible, setAppStateVisible] = useState(appState.current);
@@ -42,20 +43,22 @@ export default function App() {
       }
     });
 
+    requestLocationPermission().then((res) => {
+      if (res === true) {
+        console.log('Location permission granted');
+        setPermissionsLocation({ denied: false, granted: true });
+        getCurrentPosition();
+      } else {
+        console.log('Location permission denied');
+        setPermissionsLocation({ denied: true, granted: false });
+      }
+    })
+
     requestNotificationPermission().then((res) => {
       if (res === true) {
         console.log('Notification permission granted');
       }
     })
-
-    requestLocationPermission().then((res) => {
-      if (res === true) {
-        console.log('Location permission granted');
-        getCurrentPosition();
-      }
-    })
-
-
 
     OneSignal.setNotificationWillShowInForegroundHandler((notificationReceivedEvent) => {
       let notification = notificationReceivedEvent.getNotification();
@@ -88,12 +91,22 @@ export default function App() {
         appState.current.match(/inactive|background/) &&
         nextAppState === 'active'
       ) {
+        // if (permissionsLocation.denied == false && permissionsLocation.granted == false) {
+        //   requestLocationPermission().then((res) => {
+        //     if (res === true) {
+        //       console.log('Location permission granted');
+        //       setPermissionsLocation({denied: false, granted: true});
+        //     }else{
+        //       console.log('Location permission denied');
+        //       setPermissionsLocation({denied: true, granted: false});
+        //     }
+        //   })
+        // }
+
         console.log('App has come to the foreground!');
-        requestLocationPermission().then((res) => {
-          if (res === true) {
-            getCurrentPosition();
-          }
-        })
+        if (permissionsLocation.granted == true){
+          getCurrentPosition();
+        }
       }
 
       appState.current = nextAppState;
@@ -106,11 +119,13 @@ export default function App() {
     };
   }, []);
 
+  // After User has logged in
   // Set the external user id in OneSignal 
   // Set the user location in WP
   if (carcalSession) {
     (async () => {
       const id = await getExternalUIDInWP(carcalSession);
+
       if (location && location !== null) {
         const res = await maybeSetUserLocation(location, id);
         console.log(`Location status : ${res}`);

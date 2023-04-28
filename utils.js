@@ -1,43 +1,6 @@
 import { PermissionsAndroid } from 'react-native';
 import { Permissions } from 'expo-permissions';
 
-export const requestLocationPermission = async () => {
-    try {
-        // if permission is granted, then return true
-        if (await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION)) {
-            return true;
-        }
-
-        const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION);
-        if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-            return true;
-        } else {
-            return false;
-        }
-    } catch (err) {
-        console.warn(err);
-    }
-};
-
-// requst notification permission
-export const requestNotificationPermission = async () => {
-    try {
-        // if permission is granted, then return true
-        if (await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS)) {
-            return true;
-        }
-
-        const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
-        if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-            return true;
-        } else {
-            return false;
-        }
-    } catch (err) {
-        console.warn(err);
-    }
-};
-
 export async function setExpoTokenInWP(token) {
     // send request to server to save token
     let url = 'https://www.carcalendar.co.uk/wp-json/expoapi/v1/expo_update_push_token';
@@ -100,4 +63,19 @@ export async function maybeSetUserLocation(coords, uid) {
 
     let json = await response.json();
     return json;
+}
+
+export async function GetAllPermissions() {
+    try {
+        if (Platform.OS === "android") {
+            const userResponse = await PermissionsAndroid.requestMultiple([
+                PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+                PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
+            ]);
+            return userResponse;
+        }
+    } catch (err) {
+        Warning(err);
+    }
+    return null;
 }

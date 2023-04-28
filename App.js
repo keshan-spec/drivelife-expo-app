@@ -6,15 +6,14 @@ import Constants from 'expo-constants';
 import 'expo-dev-client';
 import Geolocation from '@react-native-community/geolocation';
 
-
-import { maybeSetUserLocation, requestLocationPermission, getExternalUIDInWP, requestNotificationPermission } from './utils'
+import { maybeSetUserLocation, getExternalUIDInWP, GetAllPermissions } from './utils'
 
 export default function App() {
   const [carcalSession, setcarcalSession] = useState('');
   const [onesignalRegistered, setOnesignalRegistered] = useState(false);
   const [playerId, setPlayerId] = useState('');
   const [location, setLocation] = useState();
-  const [permissionsLocation, setPermissionsLocation] = useState({denied: false, granted: false});
+  const [permissionsLocation, setPermissionsLocation] = useState({ denied: false, granted: false });
 
   const appState = useRef(AppState.currentState);
   const [appStateVisible, setAppStateVisible] = useState(appState.current);
@@ -23,7 +22,7 @@ export default function App() {
   const getCurrentPosition = () => {
     Geolocation.getCurrentPosition((pos) => {
       if (pos.coords) setLocation(pos.coords);
-      },(error) => Alert.alert('GetCurrentPosition Error', JSON.stringify(error)),
+    }, (error) => Alert.alert('GetCurrentPosition Error', JSON.stringify(error)),
       { enableHighAccuracy: true }
     );
   };
@@ -43,22 +42,24 @@ export default function App() {
       }
     });
 
-    requestLocationPermission().then((res) => {
-      if (res === true) {
-        console.log('Location permission granted');
-        setPermissionsLocation({ denied: false, granted: true });
-        getCurrentPosition();
-      } else {
-        console.log('Location permission denied');
-        setPermissionsLocation({ denied: true, granted: false });
-      }
-    })
+    // Get the user permissions for location and notifications
+    (async () => {
+      let res = await GetAllPermissions();
+      console.log('All Permissions', res);
 
-    requestNotificationPermission().then((res) => {
-      if (res === true) {
+      // Location
+      if (res["android.permission.ACCESS_FINE_LOCATION"] === "granted") {
+        setPermissionsLocation({ denied: false, granted: true })
+        getCurrentPosition();
+      } else setPermissionsLocation({ denied: true, granted: false });
+
+      // Notifications
+      if (res["android.permission.POST_NOTIFICATIONS"] === "granted") {
         console.log('Notification permission granted');
+      } else {
+        console.log('Notification permission denied');
       }
-    })
+    })();
 
     OneSignal.setNotificationWillShowInForegroundHandler((notificationReceivedEvent) => {
       let notification = notificationReceivedEvent.getNotification();
@@ -91,20 +92,8 @@ export default function App() {
         appState.current.match(/inactive|background/) &&
         nextAppState === 'active'
       ) {
-        // if (permissionsLocation.denied == false && permissionsLocation.granted == false) {
-        //   requestLocationPermission().then((res) => {
-        //     if (res === true) {
-        //       console.log('Location permission granted');
-        //       setPermissionsLocation({denied: false, granted: true});
-        //     }else{
-        //       console.log('Location permission denied');
-        //       setPermissionsLocation({denied: true, granted: false});
-        //     }
-        //   })
-        // }
-
         console.log('App has come to the foreground!');
-        if (permissionsLocation.granted == true){
+        if (permissionsLocation.granted == true) {
           getCurrentPosition();
         }
       }

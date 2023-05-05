@@ -70,6 +70,7 @@ export async function GetAllPermissions() {
         if (Platform.OS === "android") {
             const userResponse = await PermissionsAndroid.requestMultiple([
                 PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+                PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION,
                 PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
             ]);
             return userResponse;

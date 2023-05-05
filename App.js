@@ -1,10 +1,11 @@
-import { SafeAreaView, Text, AppState } from "react-native";
+import { SafeAreaView, Text, AppState, Alert, Linking } from "react-native";
 import { useEffect, useState, useRef } from 'react';
 import { WebView } from 'react-native-webview'
 import OneSignal from 'react-native-onesignal';
 import Constants from 'expo-constants';
 import 'expo-dev-client';
 import Geolocation from '@react-native-community/geolocation';
+// https://stackoverflow.com/questions/54075629/reactnative-permission-always-return-never-ask-again
 
 import { maybeSetUserLocation, getExternalUIDInWP, GetAllPermissions } from './utils'
 
@@ -22,7 +23,19 @@ export default function App() {
   const getCurrentPosition = () => {
     Geolocation.getCurrentPosition((pos) => {
       if (pos.coords) setLocation(pos.coords);
-    }, (error) => Alert.alert('GetCurrentPosition Error', JSON.stringify(error)),
+    }, (error) => {
+      // Alert.alert('GetCurrentPosition Error', JSON.stringify(error))
+      Alert.alert("CarCalendar",error.message, [
+        {text: "OK"},
+        {
+          text: "Settings",
+          onPress: () => {
+            Linking.openSettings();
+          }
+        }
+
+      ])
+    },
       { enableHighAccuracy: true }
     );
   };
@@ -46,6 +59,7 @@ export default function App() {
     (async () => {
       let res = await GetAllPermissions();
       console.log('All Permissions', res);
+      Alert.alert('All Permissions', JSON.stringify(res));
 
       // Location
       if (res["android.permission.ACCESS_FINE_LOCATION"] === "granted") {

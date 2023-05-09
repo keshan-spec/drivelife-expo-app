@@ -1,5 +1,5 @@
-import { SafeAreaView, Text, AppState, Alert, Linking } from "react-native";
-import { useEffect, useState, useRef } from 'react';
+import { SafeAreaView, Text, AppState, Alert, Linking, RefreshControl, ScrollView } from "react-native";
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { WebView } from 'react-native-webview'
 import OneSignal from 'react-native-onesignal';
 import Constants from 'expo-constants';
@@ -19,14 +19,34 @@ export default function App() {
   const appState = useRef(AppState.currentState);
   const [appStateVisible, setAppStateVisible] = useState(appState.current);
 
+  const [refreshing, setRefreshing] = useState(false);
+  const webViewRef = useRef()
+
+  const [refresherEnabled, setEnableRefresher] = useState(true);
+
+  //Code to get scroll position
+  const handleScroll = (event) => {
+    const yOffset = Number(event.nativeEvent.contentOffset.y)
+    if (yOffset === 0) setEnableRefresher(true)
+    else setEnableRefresher(false)
+  }
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    webViewRef.current.reload();
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
+  }, []);
+
+
   // Get the users current location
   const getCurrentPosition = () => {
     Geolocation.getCurrentPosition((pos) => {
       if (pos.coords) setLocation(pos.coords);
     }, (error) => {
-      // Alert.alert('GetCurrentPosition Error', JSON.stringify(error))
-      Alert.alert("CarCalendar",error.message, [
-        {text: "OK"},
+      Alert.alert("CarCalendar", error.message, [
+        { text: "OK" },
         {
           text: "Settings",
           onPress: () => {
@@ -58,8 +78,6 @@ export default function App() {
     // Get the user permissions for location and notifications
     (async () => {
       let res = await GetAllPermissions();
-      console.log('All Permissions', res);
-      Alert.alert('All Permissions', JSON.stringify(res));
 
       // Location
       if (res["android.permission.ACCESS_FINE_LOCATION"] === "granted") {
@@ -157,11 +175,23 @@ export default function App() {
     <SafeAreaView style={{
       flex: 1,
     }}>
-      <WebView
-        source={{ uri: `https://staging1.carcalendar.co.uk/app/app.php?pid=${playerId}` }}
-        injectedJavaScript={INJECTED_JAVASCRIPT}
-        onMessage={onMessage}
-      />
+      <ScrollView
+        contentContainerStyle={{ flex: 1 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            enabled={refresherEnabled}
+          />
+        }>
+        <WebView
+          ref={webViewRef}
+          source={{ uri: `https://staging1.carcalendar.co.uk/app/app.php?pid=${playerId}` }}
+          injectedJavaScript={INJECTED_JAVASCRIPT}
+          onMessage={onMessage}
+          onScroll={handleScroll}
+        />
+      </ScrollView>
     </SafeAreaView>
   );
 }

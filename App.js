@@ -1,4 +1,4 @@
-import { SafeAreaView, Text, AppState, Alert, Linking, RefreshControl, ScrollView } from "react-native"
+import { SafeAreaView, Text, AppState, Alert, Linking, RefreshControl, ScrollView, BackHandler } from "react-native"
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { WebView } from 'react-native-webview'
 import OneSignal from 'react-native-onesignal'
@@ -7,12 +7,32 @@ import 'expo-dev-client'
 import Geolocation from '@react-native-community/geolocation'
 // https://stackoverflow.com/questions/54075629/reactnative-permission-always-return-never-ask-again
 
+import { maybeSetUserLocation, getExternalUIDInWP, GetAllPermissions, URL, loginUserinWP } from './utils'
+
 const INJECTED_JAVASCRIPT = `(function() {
     const allData = window.localStorage.getItem('ccevents_ukey');
-    window.ReactNativeWebView.postMessage(allData);
+    // window.ReactNativeWebView.postMessage(allData);
+    window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'allData', data: allData }));
 })();`
 
-import { maybeSetUserLocation, getExternalUIDInWP, GetAllPermissions, URL, loginUserinWP } from './utils'
+// const INJECTED_JAVASCRIPT = `
+//     (function() {
+//       const allData = window.localStorage.getItem('ccevents_ukey');
+//       window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'allData', data: allData }));
+
+//       document.addEventListener('click', function(e) {
+//         window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'open', url: e }));
+
+//         if (e.target.tagName === 'A' && e.target.getAttribute('target') === '_blank') {
+//           e.preventDefault();
+//           const href = e.target.getAttribute('href');
+//           if (href && href.startsWith('${URL}')) {
+//             window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'open', url: href }));
+//           }
+//         }
+//       });
+//     })();
+//   `
 
 export default function App() {
   const [carcalSession, setcarcalSession] = useState('')
@@ -44,6 +64,10 @@ export default function App() {
     }, 1000)
   }, [])
 
+  useEffect(() => {
+    // Add a listener for 'message' event
+    webViewRef.current.onMessage = onMessage
+  }, [])
 
   // Get the users current location
   const getCurrentPosition = () => {
@@ -145,6 +169,20 @@ export default function App() {
   }, [])
 
   useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (webViewRef.current) {
+        webViewRef.current.goBack() // Attempt to go back within the WebView
+        return true // Prevent default behavior (closing the app)
+      }
+      return false // Default behavior (close the app)
+    })
+
+    return () => backHandler.remove() // Cleanup event listener on unmount
+
+  }, []) // Run only on component mount
+
+
+  useEffect(() => {
     if (carcalSession) {
       (async () => {
         const id = await getExternalUIDInWP(carcalSession)
@@ -175,8 +213,19 @@ export default function App() {
   }, [carcalSession])
 
   const onMessage = (payload) => {
-    if (payload.nativeEvent.data) {
-      setcarcalSession(payload.nativeEvent.data)
+    const data = payload.nativeEvent.data
+
+    try {
+      console.log(`Message received from webview:`, JSON.parse(data))
+      const message = JSON.parse(data)
+      if (message.type === 'allData') {
+        setcarcalSession(payload.nativeEvent.data)
+      } else if (message.type === 'open') {
+        // const { url } = message
+        // webViewRef.current.injectJavaScript(`window.location.href = '${url}';`)
+      }
+    } catch (error) {
+      console.error('Error parsing message:', error)
     }
   }
 
@@ -199,6 +248,7 @@ export default function App() {
           injectedJavaScript={INJECTED_JAVASCRIPT}
           onMessage={onMessage}
           onScroll={handleScroll}
+        // onNavigationStateChange={handleShouldStartLoad}
         />
       </ScrollView>
     </SafeAreaView>

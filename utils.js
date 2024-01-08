@@ -1,7 +1,7 @@
 import { PermissionsAndroid } from 'react-native'
 import { Permissions } from 'expo-permissions'
 
-export const URL = 'https://staging1.carcalendar.co.uk'
+export const URL = 'https://www.carcalendar.co.uk'
 
 export async function setExpoTokenInWP(token) {
     // send request to server to save token

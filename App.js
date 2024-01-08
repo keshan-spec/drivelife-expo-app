@@ -5,6 +5,7 @@ import OneSignal from 'react-native-onesignal'
 import Constants from 'expo-constants'
 import 'expo-dev-client'
 import Geolocation from '@react-native-community/geolocation'
+
 // https://stackoverflow.com/questions/54075629/reactnative-permission-always-return-never-ask-again
 
 import { maybeSetUserLocation, getExternalUIDInWP, GetAllPermissions, URL, loginUserinWP } from './utils'
@@ -228,6 +229,7 @@ export default function App() {
       console.error('Error parsing message:', error)
     }
   }
+
 
   return (
     <SafeAreaView style={{

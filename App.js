@@ -12,6 +12,8 @@ import { maybeSetUserLocation, getExternalUIDInWP, GetAllPermissions, URL, login
 
 const INJECTED_JAVASCRIPT = `(function() {
     const allData = window.localStorage.getItem('ccevents_ukey');
+    // add custom localstorage item to say that the user is using the app
+    window.localStorage.setItem('ccevents_app', 'true');
     // window.ReactNativeWebView.postMessage(allData);
     window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'allData', data: allData }));
 })();`
@@ -161,7 +163,7 @@ export default function App() {
 
       appState.current = nextAppState
       setAppStateVisible(appState.current)
-      console.log('AppState', appState.current)
+      // console.log('AppState', appState.current)
     })
 
     return () => {
@@ -217,7 +219,7 @@ export default function App() {
     const data = payload.nativeEvent.data
 
     try {
-      console.log(`Message received from webview:`, JSON.parse(data))
+      // console.log(`Message received from webview:`, JSON.parse(data))
       const message = JSON.parse(data)
       if (message.type === 'allData') {
         setcarcalSession(payload.nativeEvent.data)

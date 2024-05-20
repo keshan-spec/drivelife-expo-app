@@ -1,4 +1,4 @@
-import { SafeAreaView, Text, AppState, Alert, Linking, RefreshControl, ScrollView, BackHandler } from "react-native"
+import { SafeAreaView, AppState, Alert, Linking, RefreshControl, ScrollView, BackHandler } from "react-native"
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { WebView } from 'react-native-webview'
 import OneSignal from 'react-native-onesignal'
@@ -7,7 +7,6 @@ import 'expo-dev-client'
 import Geolocation from '@react-native-community/geolocation'
 
 // https://stackoverflow.com/questions/54075629/reactnative-permission-always-return-never-ask-again
-
 import { maybeSetUserLocation, getExternalUIDInWP, GetAllPermissions, URL, loginUserinWP } from './utils'
 
 const INJECTED_JAVASCRIPT = `(function() {
@@ -18,25 +17,6 @@ const INJECTED_JAVASCRIPT = `(function() {
     window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'allData', data: allData }));
 })();`
 
-// const INJECTED_JAVASCRIPT = `
-//     (function() {
-//       const allData = window.localStorage.getItem('ccevents_ukey');
-//       window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'allData', data: allData }));
-
-//       document.addEventListener('click', function(e) {
-//         window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'open', url: e }));
-
-//         if (e.target.tagName === 'A' && e.target.getAttribute('target') === '_blank') {
-//           e.preventDefault();
-//           const href = e.target.getAttribute('href');
-//           if (href && href.startsWith('${URL}')) {
-//             window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'open', url: href }));
-//           }
-//         }
-//       });
-//     })();
-//   `
-
 export default function App() {
   const [carcalSession, setcarcalSession] = useState('')
   const [onesignalRegistered, setOnesignalRegistered] = useState(false)
@@ -45,12 +25,21 @@ export default function App() {
   const [permissionsLocation, setPermissionsLocation] = useState({ denied: false, granted: false })
 
   const appState = useRef(AppState.currentState)
-  const [appStateVisible, setAppStateVisible] = useState(appState.current)
 
   const [refreshing, setRefreshing] = useState(false)
   const webViewRef = useRef()
 
   const [refresherEnabled, setEnableRefresher] = useState(true)
+  const [deepLinkUrl, setDeepLinkUrl] = useState('')
+
+  // This state saves whether your WebView can go back
+  const [webViewcanGoBack, setWebViewcanGoBack] = useState(false)
+
+  const handleUrl = (url) => {
+    const { query } = Linking.parse(url.url)
+    console.log(`Deep link url:`, query)
+    setDeepLinkUrl(url.url)
+  }
 
   //Code to get scroll position
   const handleScroll = (event) => {
@@ -62,14 +51,10 @@ export default function App() {
   const onRefresh = useCallback(() => {
     setRefreshing(true)
     webViewRef.current.reload()
+
     setTimeout(() => {
       setRefreshing(false)
-    }, 1000)
-  }, [])
-
-  useEffect(() => {
-    // Add a listener for 'message' event
-    webViewRef.current.onMessage = onMessage
+    }, 500)
   }, [])
 
   // Get the users current location
@@ -85,12 +70,47 @@ export default function App() {
             Linking.openSettings()
           }
         }
-
       ])
     },
       { enableHighAccuracy: true }
     )
   }
+
+  const onMessage = (payload) => {
+    const data = payload.nativeEvent.data
+
+    try {
+      console.log(`Message received from webview:`, JSON.parse(data))
+      const message = JSON.parse(data)
+      if (message.type === 'allData') {
+        setcarcalSession(payload.nativeEvent.data)
+      } else if (message.type === 'open') {
+        // const { url } = message
+        // webViewRef.current.injectJavaScript(`window.location.href = '${url}';`)
+      }
+    } catch (error) {
+      console.error('Error parsing message:', error)
+    }
+  }
+
+  const handleBackPress = useCallback(() => {
+    try {
+      if (webViewRef.current) {
+        console.log(`Can go back:`, webViewcanGoBack)
+        if (webViewcanGoBack) {
+          webViewRef.current.goBack() // Attempt to go back within the WebView
+          return true // Prevent default behavior (closing the app)
+        } else {
+          return false // Default behavior (close the app)
+        }
+      }
+
+      return false
+    } catch (error) {
+      console.log(`Error going back:`, error)
+      return false // Default behavior (close the app)
+    }
+  }, [webViewcanGoBack])
 
   // OneSignal Initialization
   useEffect(() => {
@@ -148,8 +168,24 @@ export default function App() {
     }
   }, [])
 
-  // Handles the AppState
+  // Add a listener for the back button
   useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', handleBackPress)
+
+    return () => {
+      backHandler.remove()
+    }
+  }, [webViewcanGoBack])
+
+  // Event listeners
+  useEffect(() => {
+    // Add a listener for 'url' event
+    Linking.addEventListener('url', handleUrl)
+
+    // // Add a listener for 'message' event
+    // webViewRef.current.onMessage = onMessage
+
+    // Handles the AppState
     const subscription = AppState.addEventListener('change', nextAppState => {
       if (
         appState.current.match(/inactive|background/) &&
@@ -162,28 +198,14 @@ export default function App() {
       }
 
       appState.current = nextAppState
-      setAppStateVisible(appState.current)
-      // console.log('AppState', appState.current)
     })
 
+    // Remove event listener on unmount
     return () => {
+      Linking.removeEventListener('url', handleUrl)
       subscription.remove()
     }
   }, [])
-
-  useEffect(() => {
-    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (webViewRef.current) {
-        webViewRef.current.goBack() // Attempt to go back within the WebView
-        return true // Prevent default behavior (closing the app)
-      }
-      return false // Default behavior (close the app)
-    })
-
-    return () => backHandler.remove() // Cleanup event listener on unmount
-
-  }, []) // Run only on component mount
-
 
   useEffect(() => {
     if (carcalSession) {
@@ -196,6 +218,7 @@ export default function App() {
 
         // Check if user is logged in
         const res = await loginUserinWP(id)
+
         if (res.success) {
           // reload the webview
           webViewRef.current.reload()
@@ -215,24 +238,6 @@ export default function App() {
     }
   }, [carcalSession])
 
-  const onMessage = (payload) => {
-    const data = payload.nativeEvent.data
-
-    try {
-      // console.log(`Message received from webview:`, JSON.parse(data))
-      const message = JSON.parse(data)
-      if (message.type === 'allData') {
-        setcarcalSession(payload.nativeEvent.data)
-      } else if (message.type === 'open') {
-        // const { url } = message
-        // webViewRef.current.injectJavaScript(`window.location.href = '${url}';`)
-      }
-    } catch (error) {
-      console.error('Error parsing message:', error)
-    }
-  }
-
-
   return (
     <SafeAreaView style={{
       flex: 1,
@@ -248,11 +253,16 @@ export default function App() {
         }>
         <WebView
           ref={webViewRef}
-          source={{ uri: `${URL}/app/app.php?pid=${playerId}` }}
+          // source={{ uri: `${URL}/app/app.php?pid=${playerId}` }}
+          source={{ uri: `https://phpstack-889362-4370795.cloudwaysapps.com${deepLinkUrl ? '?deeplink=' + deepLinkUrl : ''}` }}
           injectedJavaScript={INJECTED_JAVASCRIPT}
           onMessage={onMessage}
           onScroll={handleScroll}
-        // onNavigationStateChange={handleShouldStartLoad}
+          onLoadProgress={({ nativeEvent }) => {
+            // This function is called everytime your web view loads a page
+            // and here we change the state of can go back
+            setWebViewcanGoBack(nativeEvent.canGoBack)
+          }}
         />
       </ScrollView>
     </SafeAreaView>

@@ -12,7 +12,8 @@
       },
       "ios": {
         "buildConfiguration": "Debug",
-        "resourceClass": "m-medium"
+        "resourceClass": "m-medium",
+        "image": "latest"
       }
     },
     "preview": {

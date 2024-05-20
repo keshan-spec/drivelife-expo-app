@@ -1,11 +1,10 @@
 import { PermissionsAndroid } from 'react-native'
-import { Permissions } from 'expo-permissions'
 
-export const URL = 'https://www.carcalendar.co.uk'
+export const URL = 'https://www.carevents.com'
 
 export async function setExpoTokenInWP(token) {
     // send request to server to save token
-    let url = 'https://www.carcalendar.co.uk/wp-json/expoapi/v1/expo_update_push_token'
+    let url = `${URL}/wp-json/expoapi/v1/expo_update_push_token`
     let data = {
         deviceId: 22,
         token: token,
@@ -101,7 +100,7 @@ export async function GetAllPermissions() {
             const userResponse = await PermissionsAndroid.requestMultiple([
                 PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
                 PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION,
-                PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
+                PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
             ])
             return userResponse
         }

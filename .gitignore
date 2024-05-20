@@ -19,3 +19,5 @@ web-build/
 android/
 ios/
 web-build/
+
+credentials.json

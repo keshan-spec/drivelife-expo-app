@@ -174,7 +174,6 @@ export default function App() {
   // Event listeners
   useEffect(() => {
     const handleUrl = (url) => {
-      console.log(appState.current, 'url', url.url)
       setDeepLinkUrl(url.url)
     }
 
@@ -237,7 +236,6 @@ export default function App() {
     }
   }, [carcalSession])
 
-  console.log(`Deep link url:`, `ttps://phpstack-889362-4370795.cloudwaysapps.com${deepLinkUrl ? '?deeplink=' + deepLinkUrl : ''}`)
   return (
     <SafeAreaView style={{
       flex: 1,

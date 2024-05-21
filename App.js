@@ -35,12 +35,6 @@ export default function App() {
   // This state saves whether your WebView can go back
   const [webViewcanGoBack, setWebViewcanGoBack] = useState(false)
 
-  const handleUrl = (url) => {
-    const { query } = Linking.parse(url.url)
-    console.log(`Deep link url:`, query)
-    setDeepLinkUrl(url.url)
-  }
-
   //Code to get scroll position
   const handleScroll = (event) => {
     const yOffset = Number(event.nativeEvent.contentOffset.y)
@@ -179,6 +173,11 @@ export default function App() {
 
   // Event listeners
   useEffect(() => {
+    const handleUrl = (url) => {
+      console.log(appState.current, 'url', url.url)
+      setDeepLinkUrl(url.url)
+    }
+
     // Add a listener for 'url' event
     Linking.addEventListener('url', handleUrl)
 
@@ -238,6 +237,7 @@ export default function App() {
     }
   }, [carcalSession])
 
+  console.log(`Deep link url:`, `ttps://phpstack-889362-4370795.cloudwaysapps.com${deepLinkUrl ? '?deeplink=' + deepLinkUrl : ''}`)
   return (
     <SafeAreaView style={{
       flex: 1,

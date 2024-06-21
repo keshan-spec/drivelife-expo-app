@@ -30,7 +30,7 @@ const CustomVideo = ({ video }) => {
                         style={{ position: 'absolute', zIndex: 1, top: '50%', left: '50%', transform: [{ translateX: -25 }, { translateY: -25 }] }}
                     />
 
-                    <View style={{ position: 'absolute', width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.3)', zIndex: 2 }} />
+                    <View style={{ position: 'absolute', width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.1)', zIndex: 2 }} />
                 </>
             )}
 

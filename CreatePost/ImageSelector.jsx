@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { View, Image, FlatList, StyleSheet, Dimensions, SafeAreaView, TouchableOpacity, Text } from 'react-native';
-import { CameraRoll, useCameraRoll } from "@react-native-camera-roll/camera-roll";
+import { CameraRoll } from "@react-native-camera-roll/camera-roll";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 // https://icons.expo.fyi/Index
@@ -11,11 +11,13 @@ import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import { PermissionsAndroid, Platform } from "react-native";
 import { usePostProvider } from './ContextProvider';
 
-import CustomImage from './Components/Image';
 import CustomVideo from './Components/Video';
+import PannableImage from './Components/Image';
 
-const numColumns = 3;
+const numColumns = 4;
 const screenWidth = Dimensions.get('window').width;
+
+
 
 async function hasAndroidPermission() {
     const getCheckPermissionPromise = () => {
@@ -92,6 +94,7 @@ const PhotoGrid = ({ photos, loadMorePhotos, onSelectImage, selectedPhotos, isMu
         }
 
         const isSelected = selectedPhotos.some(photo => photo.uri === item.uri);
+        const indexInSelectedPhotos = selectedPhotos.indexOf(item);
 
         return (
             <TouchableOpacity style={styles.item} onPress={() => onSelectImage(item)}>
@@ -100,6 +103,23 @@ const PhotoGrid = ({ photos, loadMorePhotos, onSelectImage, selectedPhotos, isMu
                     source={{ uri: item.uri }}
                     style={[styles.image, isSelected && styles.selectedImageTile]}
                 />
+
+                {isMultiSelect && isSelected && (
+                    // number
+                    <View style={{
+                        position: 'absolute',
+                        top: 5,
+                        right: 5,
+                        backgroundColor: 'rgba(59, 84, 245, 0.5)',
+                        borderRadius: 9999,
+                        width: 25,
+                        height: 25,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                    }}>
+                        <Text style={{ color: 'white' }}>{indexInSelectedPhotos + 1}</Text>
+                    </View>
+                )}
             </TouchableOpacity>
         );
     };
@@ -112,7 +132,7 @@ const PhotoGrid = ({ photos, loadMorePhotos, onSelectImage, selectedPhotos, isMu
             numColumns={numColumns}
             keyExtractor={(item, index) => index.toString()}
             onEndReached={loadMorePhotos}
-            onEndReachedThreshold={0.5}
+            onEndReachedThreshold={.5}
         />
     );
 };
@@ -123,6 +143,12 @@ const ImageSelector = ({ navigation, onClose }) => {
     const [loading, setLoading] = useState(false);
     const [page, setPage] = useState(1);
     const [isMultiSelect, setIsMultiSelect] = useState(false);
+
+    useEffect(() => {
+        if (selectedPhotos.length === 0 && photos.length > 0) {
+            setSelectedPhotos([photos[0]]);
+        }
+    }, [selectedPhotos]);
 
 
     const getPhotos = async (page) => {
@@ -202,10 +228,9 @@ const ImageSelector = ({ navigation, onClose }) => {
         }
 
         return (
-            <Image
-                source={{ uri: lastAddedPhoto.uri }}
-                style={styles.selectedImage}
-                resizeMode="cover"
+            <PannableImage
+                key={lastAddedPhoto.uri}
+                image={lastAddedPhoto}
             />
         );
 
@@ -275,36 +300,40 @@ const ImageSelector = ({ navigation, onClose }) => {
     };
 
     return (
-        <GestureHandlerRootView style={{ flex: 1, backgroundColor: 'black' }}>
-            <SafeAreaView style={{ flex: 1 }}>
-                <View style={styles.header}>
-                    <View style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        width: '50%',
-                    }}>
-                        <TouchableOpacity onPress={onClose}>
-                            <Ionicons name="close" size={16} color="white" />
-                        </TouchableOpacity>
-                        <Text style={[styles.headerText, styles.poppinsFont]}>
-                            {` `} New Post
-                        </Text>
-                    </View>
-                    <TouchableOpacity onPress={() => {
-                        setStep(1);
-                        navigation.navigate('SharePost');
-                    }}>
-                        <Text style={[styles.closeButton, styles.poppinsFont]}>Next</Text>
+        // <GestureHandlerRootView style={{ flex: 1, backgroundColor: 'black' }}>
+        <SafeAreaView style={{ flex: 1 }}>
+            <View style={styles.header}>
+                <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    width: '50%',
+                }}>
+                    <TouchableOpacity onPress={onClose}>
+                        <Ionicons name="close" size={16} color="white" />
                     </TouchableOpacity>
+                    <Text style={[styles.headerText, styles.poppinsFont]}>
+                        {` `} New Post
+                    </Text>
                 </View>
+                <TouchableOpacity onPress={() => {
+                    setStep(1);
+                    navigation.navigate('SharePost');
+                }}>
+                    <Text style={[styles.closeButton, styles.poppinsFont]}>Next</Text>
+                </TouchableOpacity>
+            </View>
 
-                <View style={styles.topHalf}>
-                    {selectedPhotos.length === 0 && photos.length === 0 ?
-                        (<Text>No photos available</Text>) : (
-                            renderSelectedPhotos()
-                        )}
-                </View>
+            <View style={styles.topHalf}>
+                {selectedPhotos.length === 0 && photos.length === 0 ?
+                    (
+                        <Text>No photos available</Text>
+                    ) : (
+                        renderSelectedPhotos()
+                    )}
+            </View>
 
+
+            <View style={styles.bottomHalf}>
                 <View style={styles.buttonContainer}>
                     <TouchableOpacity onPress={openImagePicker} style={{
                         padding: 5,
@@ -345,18 +374,16 @@ const ImageSelector = ({ navigation, onClose }) => {
                         </TouchableOpacity>
                     </View>
                 </View>
-
-                <View style={styles.bottomHalf}>
-                    <PhotoGrid
-                        photos={photos}
-                        loadMorePhotos={loadMorePhotos}
-                        onSelectImage={onSelectImage}
-                        selectedPhotos={selectedPhotos}
-                        isMultiSelect={isMultiSelect}
-                    />
-                </View>
-            </SafeAreaView>
-        </GestureHandlerRootView >
+                <PhotoGrid
+                    photos={photos}
+                    loadMorePhotos={loadMorePhotos}
+                    onSelectImage={onSelectImage}
+                    selectedPhotos={selectedPhotos}
+                    isMultiSelect={isMultiSelect}
+                />
+            </View>
+        </SafeAreaView>
+        // </GestureHandlerRootView >
     );
 };
 
@@ -371,6 +398,8 @@ const styles = StyleSheet.create({
     },
     container: {
         flex: 1,
+        backgroundColor: 'black',
+        zIndex: 999,
     },
     poppinsFont: {
         fontFamily: 'Poppins_500Medium',
@@ -381,6 +410,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         padding: 14,
         backgroundColor: 'black',
+        zIndex: 999,
     },
     headerText: {
         fontSize: 16,
@@ -394,32 +424,32 @@ const styles = StyleSheet.create({
     item: {
         flex: 1,
         margin: 1,
+        position: 'relative',
     },
     itemInvisible: {
-        backgroundColor: 'transparent',
+        backgroundColor: '#363534',
     },
     image: {
         width: (screenWidth / numColumns) - 2,
         height: (screenWidth / numColumns) - 2,
     },
     selectedImageTile: {
-        borderWidth: 2,
-        borderColor: 'blue',
-        opacity: 0.5,
+        backgroundColor: 'rgba(59, 84, 245, 0.5)',
+        opacity: 0.3,
     },
     topHalf: {
         flex: 1,
-        justifyContent: 'center',
+        justifyContent: 'flex-start',
         alignItems: 'center',
         backgroundColor: '#151617',
     },
     bottomHalf: {
         flex: 1,
+        zIndex: 999,
     },
     selectedImage: {
         width: screenWidth,
         height: '100%',
-        resizeMode: 'cover',
     },
     buttonContainer: {
         display: 'flex',

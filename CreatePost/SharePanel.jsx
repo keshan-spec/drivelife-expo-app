@@ -1,48 +1,102 @@
-import { View, Text, Image, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, FlatList, Dimensions, ActivityIndicator } from 'react-native';
+import { View, Text, Image, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, TouchableWithoutFeedback, FlatList, Dimensions, ActivityIndicator } from 'react-native';
 import { usePostProvider } from './ContextProvider';
 
 import { Ionicons } from '@expo/vector-icons';
 import Collapsible from './Collapsible';
-import { addPost, addTagsForPost } from './actions/create-post';
-import { useState } from 'react';
+import { addPost, addTagsForPost, uploadFileInChunks } from './actions/create-post';
+import { useCallback, useMemo, useState } from 'react';
 import EditImage from './Components/EditImage';
+import CustomVideo from './Components/Video';
 
 const SharePost = ({ navigation, onComplete }) => {
-    const { selectedPhotos, setStep, getImageMetaData, taggedEntities } = usePostProvider();
+    const { selectedPhotos, setStep, getImageMetaData, taggedEntities, updateSelectedImage } = usePostProvider();
     const [caption, setCaption] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [editImage, setEditImage] = useState(null);
+    const [editImageIdx, setEditImageIdx] = useState(null);
 
-    const renderSelectedPhotos = () => {
-        if (selectedPhotos.length === 0) {
+    const isVideo = (media) => media.type.startsWith('video') ? true : false;
+
+    const renderSelectedPhotos = useCallback(() => {
+        if (selectedPhotos.length === 1) {
+            if (isVideo(selectedPhotos[0])) {
+                return <CustomVideo video={selectedPhotos[0]} />;
+            }
+
             return (
-                <TouchableOpacity onPress={() => setEditImage(selectedPhotos[0])}>
+                <TouchableWithoutFeedback onPress={() => setEditImageIdx(0)}>
                     <Image
                         source={{ uri: selectedPhotos[0].uri }}
                         style={styles.selectedImage}
                     />
-                </TouchableOpacity>
+                </TouchableWithoutFeedback>
             );
         }
+
+        // if (data.length === 0 || data[data.length - 1].type !== 'add_more') {
+        //     data.push({ type: 'add_more' });
+        // }
 
         return (
             <FlatList
                 data={selectedPhotos}
                 horizontal
                 pagingEnabled
+                // contentContainerStyle={{ marginHorizontal: selectedPhotos.length > 1 ? 20 : 0 }}
                 keyExtractor={(item, index) => index.toString()}
-                renderItem={({ item }) => (
-                    <TouchableOpacity onPress={() => setEditImage(item)}>
-                        <Image
-                            source={{ uri: item.uri }}
-                            style={styles.selectedImage}
-                        />
-                    </TouchableOpacity>
-                )}
+                renderItem={({ index, item }) => {
+                    if (item.type === 'add_more') {
+                        // an add more button
+                        return (
+                            <TouchableOpacity
+                                style={{
+                                    width: 200,
+                                    height: '100%',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    backgroundColor: '#151617',
+                                }}
+                                onPress={() => {
+                                    navigation.goBack();
+                                }}
+                            >
+                                <Ionicons name="add-circle" size={50} color="#fff" />
+                                <Text style={{ color: '#fff', fontFamily: 'Poppins_500Medium' }}>Add More</Text>
+                            </TouchableOpacity>
+                        );
+                    }
+
+                    if (isVideo(item)) {
+                        return <CustomVideo video={item} key={index} />;
+                    }
+
+                    return (
+                        <TouchableWithoutFeedback
+                            onPress={() => setEditImageIdx(index)}
+                            key={index}
+                        >
+                            <Image
+                                source={{ uri: item.uri }}
+                                style={styles.selectedImage}
+                            />
+                        </TouchableWithoutFeedback>
+                    );
+                }}
             />
         );
+    }, [selectedPhotos, editImageIdx]);
+
+    const getFirstImageAspectRatio = () => {
+        const images = selectedPhotos.filter((item) => !isVideo(item));
+        const firstImage = images[0];
+        const aspectRatio = firstImage.width / firstImage.height;
+        return aspectRatio;
     };
+
+    const firstImageIndex = useMemo(() => {
+        return selectedPhotos.findIndex((item) => !isVideo(item));
+    }, [selectedPhotos]);
+
 
     const onShare = async () => {
         if (loading) {
@@ -50,7 +104,6 @@ const SharePost = ({ navigation, onComplete }) => {
         }
 
         setLoading(true);
-
         try {
             const media = await getImageMetaData();
             const response = await addPost(1, media, caption);
@@ -62,20 +115,23 @@ const SharePost = ({ navigation, onComplete }) => {
             setLoading(false);
             onComplete(response.post_id);
         } catch (error) {
+            console.log('Error sharing post:', error);
             setError('An error occurred while sharing your post. Please try again later.');
             setLoading(false);
         }
     };
 
-    if (editImage) {
+    if (editImageIdx !== null) {
         return (
             <EditImage
-                imageUri={editImage.uri}
+                image={selectedPhotos[editImageIdx]}
                 onSave={(data) => {
-                    console.log("Updated Image Data", data);
-                    setEditImage(null);
+                    updateSelectedImage(editImageIdx, data);
+                    setEditImageIdx(null);
                 }}
-            // onCancel={() => setEditImage(null)}
+                aspectLock={editImageIdx !== firstImageIndex}
+                aspectRatio={editImageIdx === firstImageIndex ? 0 : getFirstImageAspectRatio()}
+                onCancel={() => setEditImageIdx(null)}
             />
         );
     }
@@ -195,6 +251,7 @@ const styles = StyleSheet.create({
         width: screenWidth,
         height: '100%',
         resizeMode: 'cover',
+        marginRight: 20,
     },
     scrollView: {
         // padding: 16,

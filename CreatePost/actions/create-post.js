@@ -12,8 +12,8 @@ const BUCKET_NAME = 'drivelife-media';
 AWS.config.update({
     region: 'eu-west-2', // Replace with your AWS region
     credentials: {
-        accessKeyId: process.env.AWS_KEY,
-        secretAccessKey: process.env.AWS_SECRET,
+        accessKeyId: 'AKIAZI2LH4GQ2KFIDSGO',
+        secretAccessKey: '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',
     },
 });
 

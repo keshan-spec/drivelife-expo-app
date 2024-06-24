@@ -8,13 +8,14 @@ import { Buffer } from "buffer";
 
 const BUCKET_NAME = 'drivelife-media';
 
+import config from './config.json';
+
+console.log(config);
+
 // Initialize AWS SDK
 AWS.config.update({
-    region: 'eu-west-2', // Replace with your AWS region
-    credentials: {
-        accessKeyId: 'AKIAZI2LH4GQ2KFIDSGO',
-        secretAccessKey: 'tQHk5Z8Pb0sjEInEFQYWbDKTU02iTCObTQtlPc+n',
-    },
+    // get from config.json
+
 });
 
 const s3 = new AWS.S3();

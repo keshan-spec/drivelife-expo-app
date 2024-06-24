@@ -223,6 +223,8 @@ const ImageSelector = ({ navigation, onClose }) => {
 
         const lastAddedPhoto = selectedPhotos[selectedPhotos.length - 1];
 
+        console.log(lastAddedPhoto);
+
         if (lastAddedPhoto && lastAddedPhoto.type && lastAddedPhoto.type.startsWith('video')) {
             return <CustomVideo video={lastAddedPhoto} />;
         }
@@ -280,20 +282,18 @@ const ImageSelector = ({ navigation, onClose }) => {
 
         launchCamera({
             title: 'Take a photo',
-            storageOptions: {
-                path: 'drivelife',
-            },
             saveToPhotos: true,
             mediaType: 'mixed',
-            durationLimit: 1,
+            durationLimit: 10,
         }, (response) => {
-            console.log('Response = ', response);
+            console.log(response);
+
             if (response.didCancel) {
                 console.log('User cancelled camera');
             } else if (response.error) {
                 console.log('Camera Error: ', response.error);
             } else {
-                const takenPhoto = { uri: response.assets[0].uri };
+                const takenPhoto = response.assets[0];
                 setSelectedPhotos([takenPhoto]);
             }
         });

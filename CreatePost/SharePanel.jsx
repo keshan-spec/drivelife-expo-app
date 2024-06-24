@@ -106,14 +106,12 @@ const SharePost = ({ navigation, onComplete }) => {
         setLoading(true);
         try {
             const media = await getImageMetaData();
-            const response = await addPost(1, media, caption);
-
-            if (taggedEntities.length > 0) {
-                await addTagsForPost(1, response.post_id, taggedEntities);
-            }
-
+            addPost(1, media, caption);
             setLoading(false);
-            onComplete(response.post_id);
+            onComplete(1);
+            // if (taggedEntities.length > 0) {
+            //     await addTagsForPost(1, response.post_id, taggedEntities);
+            // }
         } catch (error) {
             console.log('Error sharing post:', error);
             setError('An error occurred while sharing your post. Please try again later.');

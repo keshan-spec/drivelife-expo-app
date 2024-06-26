@@ -83,7 +83,6 @@ export default function App() {
     };
   }, []);
 
-
   //Code to get scroll position
   const handleScroll = (event) => {
     const yOffset = Number(event.nativeEvent.contentOffset.y);
@@ -140,16 +139,16 @@ export default function App() {
           return;
         }
 
-        // if (!message.user_id || message.user_id === '') {
-        //   await Notifications.scheduleNotificationAsync({
-        //     content: {
-        //       title: 'Authentication Required',
-        //       body: 'Please login to create a post',
-        //     },
-        //     trigger: null,
-        //   });
-        //   return;
-        // }
+        if (!message.user_id || message.user_id === '') {
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: 'Authentication Required',
+              body: 'Please login to create a post',
+            },
+            trigger: null,
+          });
+          return;
+        }
 
         setView('createPost');
         setcarcalSession(1);
@@ -346,28 +345,11 @@ export default function App() {
     }
   }, [carcalSession]);
 
-
-  const renderUploadProgress = () => {
-    return (
-      <View style={{
-        position: 'absolute',
-        zIndex: 999,
-        backgroundColor: 'black',
-      }}>
-        <Text style={{
-          color: 'white',
-          fontSize: 16,
-        }}>Uploading media files...</Text>
-      </View>
-    );
-  };
-
   return (
     <SafeAreaView style={{
       flex: 1,
       position: 'relative',
     }}>
-      {renderUploadProgress()}
       {view === 'createPost' && (
         <CreatePost
           onClose={() => setView('webview')}

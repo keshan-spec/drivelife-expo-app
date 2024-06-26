@@ -16,7 +16,12 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.app.carcalendar"
+      "bundleIdentifier": "com.app.carcalendar",
+      "infoPlist": {
+        "NSCameraUsageDescription": "We needs camera permissions to allow you to upload profile photos.",
+        "NSPhotoLibraryAddUsageDescription": "We needs photo library permissions to allow you to upload profile images.",
+        "NSPhotoLibraryUsageDescription": "We needs photo library permissions to allow you to upload profile images."
+      }
     },
     "android": {
       "adaptiveIcon": {

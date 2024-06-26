@@ -1,4 +1,4 @@
-import { SafeAreaView, AppState, Alert, Linking, RefreshControl, ScrollView, BackHandler, View, Text } from "react-native";
+import { SafeAreaView, AppState, Alert, Linking, RefreshControl, ScrollView, BackHandler, View, Text, Platform } from "react-native";
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { WebView } from 'react-native-webview';
 import OneSignal from 'react-native-onesignal';
@@ -186,17 +186,19 @@ export default function App() {
     (async () => {
       let res = await GetAllPermissions();
 
-      // Location
-      if (res["android.permission.ACCESS_FINE_LOCATION"] === "granted") {
-        setPermissionsLocation({ denied: false, granted: true });
-        getCurrentPosition();
-      } else setPermissionsLocation({ denied: true, granted: false });
+      if (Platform.OS === 'android') {
+        // Location
+        if (res["android.permission.ACCESS_FINE_LOCATION"] === "granted") {
+          setPermissionsLocation({ denied: false, granted: true });
+          getCurrentPosition();
+        } else setPermissionsLocation({ denied: true, granted: false });
 
-      // Notifications
-      if (res["android.permission.POST_NOTIFICATIONS"] === "granted") {
-        console.log('Notification permission granted');
-      } else {
-        console.log('Notification permission denied');
+        // Notifications
+        if (res["android.permission.POST_NOTIFICATIONS"] === "granted") {
+          console.log('Notification permission granted');
+        } else {
+          console.log('Notification permission denied');
+        }
       }
     })();
 

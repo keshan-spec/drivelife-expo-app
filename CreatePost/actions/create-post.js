@@ -1,6 +1,8 @@
 export const API_URL = 'https://wordpress-889362-4267074.cloudwaysapps.com/uk';
 // https://javascript.plainenglish.io/large-file-uploads-in-the-background-with-react-native-1b9fe49e367c
 
+// NEED TO ADD THIS TO AndroidManifest.xml <service android:name="com.asterinet.react.bgactions.RNBackgroundActionsTask" android:foregroundServiceType="dataSync" />;
+
 import AWS from 'aws-sdk';
 import RNFS from 'react-native-fs';
 

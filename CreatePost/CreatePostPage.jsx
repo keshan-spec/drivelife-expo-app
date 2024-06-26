@@ -19,7 +19,7 @@ const Stack = createStackNavigator();
 
 const CreatePost = ({
     onComplete,
-    onClose
+    onClose,
 }) => {
     const [fontsLoaded] = useFonts({
         Poppins_500Medium,

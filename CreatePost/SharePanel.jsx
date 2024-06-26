@@ -3,13 +3,12 @@ import { usePostProvider } from './ContextProvider';
 
 import { Ionicons } from '@expo/vector-icons';
 import Collapsible from './Collapsible';
-import { addPost, addTagsForPost, uploadFileInChunks } from './actions/create-post';
 import { useCallback, useMemo, useState } from 'react';
 import EditImage from './Components/EditImage';
 import CustomVideo from './Components/Video';
 
 const SharePost = ({ navigation, onComplete }) => {
-    const { selectedPhotos, setStep, getImageMetaData, taggedEntities, updateSelectedImage } = usePostProvider();
+    const { selectedPhotos, setStep, taggedEntities, updateSelectedImage } = usePostProvider();
     const [caption, setCaption] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -67,7 +66,11 @@ const SharePost = ({ navigation, onComplete }) => {
                     }
 
                     if (isVideo(item)) {
-                        return <CustomVideo video={item} key={index} />;
+                        // return <CustomVideo video={item} key={index} />;
+                        return <Image
+                            source={{ uri: item.uri }}
+                            style={styles.selectedImage}
+                        />;
                     }
 
                     return (
@@ -105,13 +108,13 @@ const SharePost = ({ navigation, onComplete }) => {
 
         setLoading(true);
         try {
-            const media = await getImageMetaData();
-            addPost(1, media, caption);
             setLoading(false);
-            onComplete(1);
-            // if (taggedEntities.length > 0) {
-            //     await addTagsForPost(1, response.post_id, taggedEntities);
-            // }
+            onComplete({
+                media: selectedPhotos,
+                caption,
+                location: null,
+                taggedEntities,
+            });
         } catch (error) {
             console.log('Error sharing post:', error);
             setError('An error occurred while sharing your post. Please try again later.');

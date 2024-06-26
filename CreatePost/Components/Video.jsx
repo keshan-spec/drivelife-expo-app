@@ -2,15 +2,31 @@ import { useEffect, useState } from "react";
 import { Dimensions, View } from "react-native";
 import { StyleSheet } from "react-native";
 import { TouchableWithoutFeedback } from "react-native-gesture-handler";
-import Video from "react-native-video";
 
 const screenWidth = Dimensions.get('window').width;
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { usePostProvider } from "../ContextProvider";
 
+import { Video } from 'expo-av';
+import * as MediaLibrary from 'expo-media-library';
+
 const CustomVideo = ({ video }) => {
     const { step } = usePostProvider();
     const [paused, setPaused] = useState(false);
+
+    const [media, setMedia] = useState({
+        uri: null,
+    });
+
+    useEffect(() => {
+        const loadVideo = async () => {
+            const asset = await MediaLibrary.getAssetInfoAsync(video.id);
+            setMedia(asset);
+        };
+
+        loadVideo();
+    }, [video]);
+
 
     useEffect(() => {
         console.log('step', step);
@@ -34,16 +50,16 @@ const CustomVideo = ({ video }) => {
                 </>
             )}
 
-            <Video
-                key={video.uri}
-                source={{ uri: video.uri }}
-                style={styles.selectedImage}
-                resizeMode="contain"
-                paused={paused}
-                repeat={true}
-                playInBackground={false}
-                playWhenInactive={false}
-            />
+            {media.uri && (
+                <Video
+                    key={media.uri}
+                    resizeMode="contain"
+                    source={{ uri: media.uri }}
+                    style={styles.selectedImage}
+                    shouldPlay={!paused}
+                    isLooping
+                />
+            )}
         </TouchableWithoutFeedback>
     );
 };

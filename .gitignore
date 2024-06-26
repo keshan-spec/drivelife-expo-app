@@ -25,5 +25,5 @@ credentials.json
 
 .env
 
-*/**/config.json
+# */**/config.json
 eas.json

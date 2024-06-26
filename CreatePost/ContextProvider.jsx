@@ -1,37 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import ImageSize from 'react-native-image-size';
-import RNFS from 'react-native-fs';
 
 export const PostContext = createContext();
-
-const fetchImageDataAsBase64 = async (uri, type) => {
-    try {
-        const { isFile, size } = await RNFS.stat(uri);
-
-        if (!isFile) {
-            throw new Error('File not found:', uri);
-        }
-
-        // Define the chunk size
-        const chunkSize = 1024 * 1024; // 1MB
-        let position = 0;
-        let base64Data = '';
-
-        // Read the file in chunks
-        while (position < size) {
-            const length = Math.min(chunkSize, size - position);
-            const chunk = await RNFS.read(uri, length, position, 'base64');
-
-            base64Data += chunk;
-            position += length;
-        }
-
-        return `data:${type};base64,${base64Data}`;
-    } catch (error) {
-        console.error(`Error fetching image data for ${uri}:`, error);
-        throw error;
-    }
-};
 
 export const PostProvider = ({ children }) => {
     const [selectedPhotos, setSelectedPhotos] = useState([]);
@@ -54,16 +24,16 @@ export const PostProvider = ({ children }) => {
         let tallestImg = 0;
 
         for (let image of selectedPhotos) {
-            let imageWidth = image.width;
-            let imageHeight = image.height;
+            let imageWidth = parseFloat(image.width || 0);
+            let imageHeight = parseFloat(image.height || 0);
 
             const { width, height } = await ImageSize.getSize(image.uri);
 
-            if (!imageWidth) {
+            if (!imageWidth || imageWidth < 100) {
                 imageWidth = width;
             }
 
-            if (!imageHeight) {
+            if (!imageHeight || imageHeight < 100) {
                 imageHeight = height;
             }
 
@@ -71,13 +41,12 @@ export const PostProvider = ({ children }) => {
                 tallestImg = height;
             }
 
-            let type = 'image';
+            // let type = 'image';
 
-            if (image.type) {
-                type = image.type.split('/')[0];
-            }
+            // if (image.type) {
+            //     type = image.type.split('/')[0];
+            // }
 
-            // const base64Data = await fetchImageDataAsBase64(image.uri, image.type);
             media.push({
                 ...image,
                 width,

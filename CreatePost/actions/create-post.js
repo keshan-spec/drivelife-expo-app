@@ -4,43 +4,55 @@ export const API_URL = 'https://wordpress-889362-4267074.cloudwaysapps.com/uk';
 import AWS from 'aws-sdk';
 import RNFS from 'react-native-fs';
 
+import uuid from 'react-native-uuid';
 import { Buffer } from "buffer";
+import config from './config.json';
+
+import BackgroundService from 'react-native-background-actions';
+import * as Notifications from 'expo-notifications';
+
+import { Image, Video, getImageMetaData, getVideoMetaData } from 'react-native-compressor';
+
 
 const BUCKET_NAME = 'drivelife-media';
 
-import config from './config.json';
-
-console.log(config);
-
-// Initialize AWS SDK
 AWS.config.update({
-    // get from config.json
-
+    ...config
 });
 
 const s3 = new AWS.S3();
 const CHUNK_SIZE = 1024 * 1024 * 5; // 1MB
 
 const initiateMultipartUpload = async (fileName, bucketName) => {
-    const params = {
-        Bucket: bucketName,
-        Key: fileName,
-        // ACL: 'public-read',
-    };
-    const response = await s3.createMultipartUpload(params).promise();
-    return response.UploadId;
+    try {
+        const params = {
+            Bucket: bucketName,
+            Key: fileName,
+            // ACL: 'public-read',
+        };
+        const response = await s3.createMultipartUpload(params).promise();
+        return response.UploadId;
+    } catch (error) {
+        console.error('Error during multipart upload initiation:', error);
+        throw error;
+    }
 };
 
 const uploadPart = async (bucketName, fileName, uploadId, partNumber, chunkData) => {
-    const params = {
-        Bucket: bucketName,
-        Key: fileName,
-        PartNumber: partNumber,
-        UploadId: uploadId,
-        Body: chunkData,
-    };
-    const response = await s3.uploadPart(params).promise();
-    return response.ETag;
+    try {
+        const params = {
+            Bucket: bucketName,
+            Key: fileName,
+            PartNumber: partNumber,
+            UploadId: uploadId,
+            Body: chunkData,
+        };
+        const response = await s3.uploadPart(params).promise();
+        return response.ETag;
+    } catch (error) {
+        console.error('Error during part upload:', error);
+        throw error;
+    }
 };
 
 const completeMultipartUpload = async (bucketName, fileName, uploadId, parts) => {
@@ -57,16 +69,68 @@ const completeMultipartUpload = async (bucketName, fileName, uploadId, parts) =>
     return response;
 };
 
+const compressMedia = async (media, type) => {
+    if (type === 'image') {
+        // const compressedImage = await Image.compress(media.uri, {
+        //     quality: 1,
+        // });
+
+        const {
+            ImageHeight,
+            ImageWidth,
+            size,
+            extension
+        } = await getImageMetaData(media.uri);
+
+        return {
+            uri: media.uri,
+            height: ImageHeight,
+            width: ImageWidth,
+            fileSize: size,
+            filename: `${uuid.v4()}.${extension}`,
+        };
+    } else if (type === 'video') {
+        const compressedVideo = await Video.compress(media.uri, {
+            compressionMethod: 'auto',
+        });
+
+        const {
+            size,
+            height,
+            width,
+            extension
+        } = await getVideoMetaData(compressedVideo);
+
+        return {
+            uri: compressedVideo,
+            height,
+            width,
+            fileSize: size,
+            filename: `${uuid.v4()}.${extension}`,
+        };
+    }
+
+    return null;
+};
+
 export const uploadFileInChunks = async (user_id, mediaList) => {
     try {
         const uploadedData = [];
+        let completeStatusPercent = 0;
 
         for (let i = 0; i < mediaList.length; i++) {
-            const currentFile = mediaList[i];
-            console.log(currentFile);
+            const type = mediaList[i].type.split('/')[0];
+            const mime = mediaList[i].type;
+            const currentFile = await compressMedia(mediaList[i], type);
+
+            if (!currentFile) {
+                throw new Error('Failed to compress media');
+            }
+
             const fileSize = currentFile.fileSize;
             const filePath = currentFile.uri;
-            const fileName = currentFile.filename;
+            const fileName = `${user_id}/${currentFile.filename}`;
+
             let offset = 0;
             let partNumber = 1;
             let parts = [];
@@ -89,6 +153,16 @@ export const uploadFileInChunks = async (user_id, mediaList) => {
 
                 // Calculate and log progress
                 let percentage = Math.round((offset / fileSize) * 100);
+                completeStatusPercent = Math.round(percentage / mediaList.length);
+
+                await BackgroundService.updateNotification({
+                    progressBar: {
+                        max: 100,
+                        value: completeStatusPercent,
+                    },
+                    taskDesc: `Uploading ${completeStatusPercent}% completed`,
+                });
+
                 console.log(`Uploading file ${i + 1}/${mediaList.length}: ${percentage}% completed`);
 
                 // Increment the offset and part number
@@ -98,35 +172,69 @@ export const uploadFileInChunks = async (user_id, mediaList) => {
 
             // Complete the multipart upload
             const response = await completeMultipartUpload(BUCKET_NAME, fileName, uploadId, parts);
-            const { Location, Key } = response;
+            const { Key } = response;
 
             uploadedData.push({
-                url: Location,
+                url: `https://d3gv6k8qu6wcqs.cloudfront.net/${Key}`,
                 key: Key,
-                mime: currentFile.type,
-                type: currentFile.type.includes('image') ? 'image' : 'video',
+                mime,
+                type: type,
                 width: currentFile.width,
                 height: currentFile.height,
+            });
+
+            completeStatusPercent = Math.round(uploadedData.length / mediaList.length * 100);
+
+            await BackgroundService.updateNotification({
+                progressBar: {
+                    max: 100,
+                    value: completeStatusPercent,
+                },
+                taskDesc: `Uploading ${completeStatusPercent}% completed`,
             });
 
             console.log(`File ${i + 1}/${mediaList.length} upload complete`);
         }
 
+        await BackgroundService.updateNotification({
+            taskDesc: 'Uploaded media files',
+        });
         return uploadedData;
     } catch (error) {
+        await BackgroundService.stop();
         console.error('Error during chunk upload:', error);
+        throw error;
     }
 };
 
-export const addPost = async (user_id, mediaList, caption = '', location = '') => {
+const addNotification = async (title, message, data = null) => {
+    // add a notification to the user
+    await Notifications.scheduleNotificationAsync({
+        content: {
+            title,
+            body: message,
+            data: data,
+        },
+        trigger: { seconds: 2 },
+    });
+};
+
+export const addPost = async ({
+    user_id,
+    mediaList,
+    caption,
+    location,
+    taggedEntities = [],
+}) => {
     try {
         if (!user_id || !mediaList || mediaList.length === 0) {
+            await BackgroundService.stop();
             throw new Error("Invalid data");
         }
 
         const media = await uploadFileInChunks(user_id, mediaList);
-
         const formData = new FormData();
+
         formData.append("user_id", user_id);
         formData.append("caption", caption || "");
         formData.append("location", location || "");
@@ -138,19 +246,26 @@ export const addPost = async (user_id, mediaList, caption = '', location = '') =
             body: formData,
         });
 
+        // iOS will also run everything here in the background until .stop() is called
+        await BackgroundService.stop();
+
         const data = await response.json();
-        if (!data || data.error) {
-            throw new Error(data.error);
+        if (!data || data.error || response.status !== 200) {
+            await addNotification("Failed to create post", data.error || "Failed to create post");
+            throw new Error(data.error || "Post creation failed, status: " + response.status);
         }
 
-        if (response.status !== 200) {
-            throw new Error("Failed to create post");
+        if (taggedEntities.length > 0) {
+            const tag_response = await addTagsForPost(user_id, data.post_id, taggedEntities);
         }
 
+        await addNotification("Post created", "Post created successfully", {
+            post_id: data.post_id,
+        });
         return data;
     } catch (e) {
-        console.log(e.message);
-        throw new Error("Failed to create post");
+        await addNotification("Failed to create post", e.message || "Failed to create post");
+        throw new Error(`Failed to create post: ${e.message}`);
     }
 };
 

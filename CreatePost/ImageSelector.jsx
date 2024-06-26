@@ -1,8 +1,8 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Image, FlatList, StyleSheet, Dimensions, SafeAreaView, TouchableOpacity, Text } from 'react-native';
 import { CameraRoll } from "@react-native-camera-roll/camera-roll";
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import * as MediaLibrary from 'expo-media-library';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 // https://icons.expo.fyi/Index
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
@@ -13,11 +13,10 @@ import { usePostProvider } from './ContextProvider';
 
 import CustomVideo from './Components/Video';
 import PannableImage from './Components/Image';
+import { stat } from 'react-native-fs';
 
 const numColumns = 4;
 const screenWidth = Dimensions.get('window').width;
-
-
 
 async function hasAndroidPermission() {
     const getCheckPermissionPromise = () => {
@@ -142,6 +141,7 @@ const ImageSelector = ({ navigation, onClose }) => {
     const [photos, setPhotos] = useState([]);
     const [loading, setLoading] = useState(false);
     const [page, setPage] = useState(1);
+    const [hasNextPage, setHasNextPage] = useState(true);
     const [isMultiSelect, setIsMultiSelect] = useState(false);
 
     useEffect(() => {
@@ -152,40 +152,50 @@ const ImageSelector = ({ navigation, onClose }) => {
 
 
     const getPhotos = async (page) => {
-        if (Platform.OS === "android" && !(await hasAndroidPermission())) {
+        if (Platform.OS === "android" && !(await MediaLibrary.requestPermissionsAsync())) {
             return;
         }
 
-        const gallery = await CameraRoll.getPhotos({
+        const gallery = await MediaLibrary.getAssetsAsync({
             first: 20 * page,
-            assetType: 'All',
-            include: ['fileSize', 'image', 'filename', 'uri', 'width', 'height', 'type', 'location'],
-            mimeTypes: ['image/jpeg', 'image/png', 'image/jpg', 'video/mp4'],
-            groupTypes: 'All',
+            mediaType: ['video'],
+            sortBy: ['creationTime'],
         });
 
-        const { edges } = gallery;
+        const { assets, hasNextPage } = gallery;
 
-        const images = edges.map((photo) => {
+        if (!hasNextPage) {
+            setHasNextPage(false);
+        }
+
+        const images = assets.map(async (asset) => {
+            let { size } = await stat(asset.uri);
+
+            const mimeType = asset.filename.split('.').pop();
+            const type = asset.mediaType === 'photo' ? 'image' : 'video';
+
             return {
-                uri: photo.node.image.uri,
-                filename: photo.node.image.filename,
-                fileSize: photo.node.image.fileSize,
-                type: photo.node.type,
-                width: photo.node.image.width,
-                height: photo.node.image.height,
+                uri: asset.uri,
+                fileName: asset.filename,
+                fileSize: size,
+                type: `${type}/${mimeType}`,
+                width: asset.width,
+                height: asset.height,
+                id: asset.id,
             };
         });
 
-        setPhotos(images);
+        const media = await Promise.all(images);
 
-        if (selectedPhotos.length === 0 && images.length > 0) {
-            setSelectedPhotos([images[0]]);
+        setPhotos(media);
+
+        if (selectedPhotos.length === 0 && media.length > 0) {
+            setSelectedPhotos([media[0]]);
         }
     };
 
-    const loadMorePhotos = () => {
-        if (!loading) {
+    const loadMorePhotos = useCallback(() => {
+        if (hasNextPage && !loading) {
             setLoading(true);
             setPage(prevPage => {
                 const newPage = prevPage + 1;
@@ -194,7 +204,7 @@ const ImageSelector = ({ navigation, onClose }) => {
                 return newPage;
             });
         }
-    };
+    }, [loading, hasNextPage]);
 
     const onSelectImage = (image) => {
         if (isMultiSelect) {
@@ -222,8 +232,6 @@ const ImageSelector = ({ navigation, onClose }) => {
         }
 
         const lastAddedPhoto = selectedPhotos[selectedPhotos.length - 1];
-
-        console.log(lastAddedPhoto);
 
         if (lastAddedPhoto && lastAddedPhoto.type && lastAddedPhoto.type.startsWith('video')) {
             return <CustomVideo video={lastAddedPhoto} />;
@@ -286,8 +294,6 @@ const ImageSelector = ({ navigation, onClose }) => {
             mediaType: 'mixed',
             durationLimit: 10,
         }, (response) => {
-            console.log(response);
-
             if (response.didCancel) {
                 console.log('User cancelled camera');
             } else if (response.error) {

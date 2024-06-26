@@ -1,14 +1,16 @@
-import { SafeAreaView, AppState, Alert, Linking, RefreshControl, ScrollView, BackHandler } from "react-native";
+import { SafeAreaView, AppState, Alert, Linking, RefreshControl, ScrollView, BackHandler, View, Text } from "react-native";
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { WebView } from 'react-native-webview';
 import OneSignal from 'react-native-onesignal';
 import Constants from 'expo-constants';
 import 'expo-dev-client';
 import Geolocation from '@react-native-community/geolocation';
+import BackgroundService from 'react-native-background-actions';
 
 // https://stackoverflow.com/questions/54075629/reactnative-permission-always-return-never-ask-again
 import { maybeSetUserLocation, getExternalUIDInWP, GetAllPermissions, loginUserinWP } from './utils';
 import CreatePost from "./CreatePost/CreatePostPage";
+import { addPost } from "./CreatePost/actions/create-post";
 
 const INJECTED_JAVASCRIPT = `(function() {
     const allData = window.localStorage.getItem('ccevents_ukey');
@@ -17,6 +19,16 @@ const INJECTED_JAVASCRIPT = `(function() {
     // window.ReactNativeWebView.postMessage(allData);
     window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'allData', data: allData }));
 })();`;
+
+import * as Notifications from 'expo-notifications';
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 
 export default function App() {
   const [carcalSession, setcarcalSession] = useState('');
@@ -38,6 +50,26 @@ export default function App() {
 
   // This state saves whether your WebView can go back
   const [webViewcanGoBack, setWebViewcanGoBack] = useState(false);
+
+  useEffect(() => {
+
+    // Handle user clicking on a notification and open the screen
+    const handleNotificationClick = async (response) => {
+      const post_id = response.notification.request.content.data.post_id;
+
+      if (post_id) {
+        setDeepLinkUrl(`https://phpstack-889362-4370795.cloudwaysapps.com/posts/${post_id}`);
+      }
+    };
+
+    // Listen for user clicking on a notification
+    const notificationClickSubscription = Notifications.addNotificationResponseReceivedListener(handleNotificationClick);
+
+    return () => {
+      notificationClickSubscription.remove();
+    };
+  }, []);
+
 
   //Code to get scroll position
   const handleScroll = (event) => {
@@ -74,11 +106,10 @@ export default function App() {
     );
   };
 
-  const onMessage = (payload) => {
+  const onMessage = async (payload) => {
     const data = payload.nativeEvent.data;
 
     try {
-      console.log(`Message received from webview:`, JSON.parse(data));
       const message = JSON.parse(data);
       if (message.type === 'allData') {
         setcarcalSession(payload.nativeEvent.data);
@@ -86,7 +117,30 @@ export default function App() {
         // const { url } = message
         // webViewRef.current.injectJavaScript(`window.location.href = '${url}';`)
       } else if (message.type === 'createPost') {
+        // check if background service is running
+        const isRunning = BackgroundService.isRunning();
+
+        if (isRunning) {
+          Alert.alert('CarCalendar', 'Please wait for the current post to finish uploading', [
+            { text: 'OK' }
+          ]);
+          return;
+        }
+
+        // if (!message.user_id || message.user_id === '') {
+        //   await Notifications.scheduleNotificationAsync({
+        //     content: {
+        //       title: 'Authentication Required',
+        //       body: 'Please login to create a post',
+        //     },
+        //     trigger: null,
+        //   });
+        //   return;
+        // }
+
         setView('createPost');
+        setcarcalSession(1);
+        console.log(`Create post message:`, message);
         setWebviewLoaded(false);
       }
     } catch (error) {
@@ -243,17 +297,71 @@ export default function App() {
     }
   }, [carcalSession]);
 
+  const onPostCreateBtnPress = useCallback(async ({
+    media,
+    caption,
+    location,
+    taggedEntities,
+  }) => {
+    try {
+      const options = {
+        taskName: 'PostUpload',
+        taskTitle: 'Post Upload',
+        taskDesc: 'Uploading media files',
+        taskIcon: {
+          name: 'ic_launcher',
+          type: 'mipmap',
+        },
+        color: '#ff00ff',
+        linkingURI: 'uploadFile',
+      };
+
+      setDeepLinkUrl(`https://phpstack-889362-4370795.cloudwaysapps.com/`);
+      setView('webview');
+
+      await BackgroundService.start(() => addPost({
+        user_id: carcalSession,
+        mediaList: media,
+        caption,
+        location,
+        taggedEntities,
+      }), options);
+    } catch (error) {
+      await BackgroundService.stop();
+      console.error('Error uploading post:', error);
+    }
+  }, [carcalSession]);
+
+
+  const renderUploadProgress = () => {
+    return (
+      <View style={{
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        padding: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
+      }}>
+        <Text style={{
+          color: 'white',
+          fontSize: 16,
+        }}>Uploading media files...</Text>
+      </View>
+    );
+  };
+
   return (
     <SafeAreaView style={{
       flex: 1,
     }}>
+      {BackgroundService.isRunning() && renderUploadProgress()}
       {view === 'createPost' && (
         <CreatePost
           onClose={() => setView('webview')}
-          onComplete={(post_id) => {
-            setDeepLinkUrl(`https://phpstack-889362-4370795.cloudwaysapps.com/posts/${post_id}`);
-            setView('webview');
-          }}
+          onComplete={onPostCreateBtnPress}
         />
       )}
 
@@ -275,15 +383,17 @@ export default function App() {
               setWebviewLoaded(true);
             }}
             source={{ uri: `https://phpstack-889362-4370795.cloudwaysapps.com${deepLinkUrl ? '?deeplink=' + deepLinkUrl : ''}` }}
-            injectedJavaScript={INJECTED_JAVASCRIPT}
+            // injectedJavaScript={INJECTED_JAVASCRIPT}
             onMessage={onMessage}
             onScroll={handleScroll}
-            startInLoadingState={true}
+            // startInLoadingState={true}
+
             onLoadProgress={({ nativeEvent }) => {
               // This function is called everytime your web view loads a page
               // and here we change the state of can go back
               setWebViewcanGoBack(nativeEvent.canGoBack);
             }}
+            setBuiltInZoomControls={true}
           />
         </ScrollView>
       )}

@@ -5,7 +5,6 @@ import { Ionicons } from '@expo/vector-icons';
 import Collapsible from './Collapsible';
 import { useCallback, useMemo, useState } from 'react';
 import EditImage from './Components/EditImage';
-import CustomVideo from './Components/Video';
 
 const SharePost = ({ navigation, onComplete }) => {
     const { selectedPhotos, setStep, taggedEntities, updateSelectedImage } = usePostProvider();
@@ -19,7 +18,10 @@ const SharePost = ({ navigation, onComplete }) => {
     const renderSelectedPhotos = useCallback(() => {
         if (selectedPhotos.length === 1) {
             if (isVideo(selectedPhotos[0])) {
-                return <CustomVideo video={selectedPhotos[0]} />;
+                return <Image
+                    source={{ uri: selectedPhotos[0].uri }}
+                    style={styles.selectedImage}
+                />;
             }
 
             return (
@@ -32,39 +34,14 @@ const SharePost = ({ navigation, onComplete }) => {
             );
         }
 
-        // if (data.length === 0 || data[data.length - 1].type !== 'add_more') {
-        //     data.push({ type: 'add_more' });
-        // }
-
         return (
             <FlatList
                 data={selectedPhotos}
                 horizontal
                 pagingEnabled
-                // contentContainerStyle={{ marginHorizontal: selectedPhotos.length > 1 ? 20 : 0 }}
+                ItemSeparatorComponent={() => <View style={{ width: 10 }} />}
                 keyExtractor={(item, index) => index.toString()}
                 renderItem={({ index, item }) => {
-                    if (item.type === 'add_more') {
-                        // an add more button
-                        return (
-                            <TouchableOpacity
-                                style={{
-                                    width: 200,
-                                    height: '100%',
-                                    justifyContent: 'center',
-                                    alignItems: 'center',
-                                    backgroundColor: '#151617',
-                                }}
-                                onPress={() => {
-                                    navigation.goBack();
-                                }}
-                            >
-                                <Ionicons name="add-circle" size={50} color="#fff" />
-                                <Text style={{ color: '#fff', fontFamily: 'Poppins_500Medium' }}>Add More</Text>
-                            </TouchableOpacity>
-                        );
-                    }
-
                     if (isVideo(item)) {
                         // return <CustomVideo video={item} key={index} />;
                         return <Image
@@ -162,8 +139,9 @@ const SharePost = ({ navigation, onComplete }) => {
                     display: 'flex',
                     justifyContent: 'center',
                     alignItems: 'center',
-                    backgroundColor: '#151617',
+                    // backgroundColor: '#151617',
                     height: 350,
+                    padding: 10,
                 }}>
                     {renderSelectedPhotos()}
                 </View>
@@ -249,10 +227,10 @@ const styles = StyleSheet.create({
         fontFamily: 'Poppins_500Medium',
     },
     selectedImage: {
-        width: screenWidth,
+        width: 350,
         height: '100%',
-        resizeMode: 'cover',
-        marginRight: 20,
+        borderRadius: 15,
+        // resizeMode: 'contain',
     },
     scrollView: {
         // padding: 16,

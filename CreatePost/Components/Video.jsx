@@ -29,7 +29,6 @@ const CustomVideo = ({ video }) => {
 
 
     useEffect(() => {
-        console.log('step', step);
         setPaused(step === 1);
     }, [step]);
 

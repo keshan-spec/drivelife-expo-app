@@ -20,8 +20,11 @@
       "infoPlist": {
         "NSCameraUsageDescription": "We needs camera permissions to allow you to upload profile photos.",
         "NSPhotoLibraryAddUsageDescription": "We needs photo library permissions to allow you to upload profile images.",
-        "NSPhotoLibraryUsageDescription": "We needs photo library permissions to allow you to upload profile images."
-      }
+        "NSPhotoLibraryUsageDescription": "We needs photo library permissions to allow you to upload profile images.",
+        "NSMicrophoneUsageDescription": "We needs microphone permissions to allow you to record audio.",
+        "NSLocationWhenInUseUsageDescription": "We needs location permissions to allow you to use the app."
+      },
+      "icon": "./assets/ios/app_icon.png"
     },
     "android": {
       "adaptiveIcon": {
@@ -90,6 +93,14 @@
       ],
       [
         "react-native-compressor"
+      ],
+      [
+        "expo-notifications",
+        {
+          "sounds": [
+            "./assets/notification.wav"
+          ]
+        }
       ]
     ],
     "extra": {

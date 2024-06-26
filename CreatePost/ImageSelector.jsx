@@ -1,78 +1,21 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Image, FlatList, StyleSheet, Dimensions, SafeAreaView, TouchableOpacity, Text } from 'react-native';
-import { CameraRoll } from "@react-native-camera-roll/camera-roll";
 import * as MediaLibrary from 'expo-media-library';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 // https://icons.expo.fyi/Index
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 
 // https://www.npmjs.com/package/@react-native-camera-roll/camera-roll
-import { PermissionsAndroid, Platform } from "react-native";
+import { Platform } from "react-native";
 import { usePostProvider } from './ContextProvider';
 
 import CustomVideo from './Components/Video';
-import PannableImage from './Components/Image';
 import { stat } from 'react-native-fs';
 
 const numColumns = 4;
 const screenWidth = Dimensions.get('window').width;
 
-async function hasAndroidPermission() {
-    const getCheckPermissionPromise = () => {
-        if (Platform.Version >= 33) {
-            return Promise.all([
-                PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES),
-                PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.READ_MEDIA_VIDEO),
-                PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.CAMERA),
-            ]).then(
-                ([hasReadMediaImagesPermission, hasReadMediaVideoPermission, hasCameraPermission]) =>
-                    hasReadMediaImagesPermission && hasReadMediaVideoPermission && hasCameraPermission,
-            );
-        } else {
-            return Promise.all([
-                PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE),
-                PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.CAMERA),
-            ]).then(
-                ([hasReadExternalStoragePermission, hasCameraPermission]) =>
-                    hasReadExternalStoragePermission && hasCameraPermission,
-            );
-        }
-    };
-
-    const hasPermission = await getCheckPermissionPromise();
-    if (hasPermission) {
-        return true;
-    }
-
-    const getRequestPermissionPromise = () => {
-        if (Platform.Version >= 33) {
-            return PermissionsAndroid.requestMultiple([
-                PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES,
-                PermissionsAndroid.PERMISSIONS.READ_MEDIA_VIDEO,
-                PermissionsAndroid.PERMISSIONS.CAMERA,
-            ]).then(
-                (statuses) =>
-                    statuses[PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES] ===
-                    PermissionsAndroid.RESULTS.GRANTED &&
-                    statuses[PermissionsAndroid.PERMISSIONS.READ_MEDIA_VIDEO] ===
-                    PermissionsAndroid.RESULTS.GRANTED &&
-                    statuses[PermissionsAndroid.PERMISSIONS.CAMERA] ===
-                    PermissionsAndroid.RESULTS.GRANTED,
-            );
-        } else {
-            return Promise.all([
-                PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE),
-                PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.CAMERA),
-            ]).then(([readExternalStorageStatus, cameraStatus]) =>
-                readExternalStorageStatus === PermissionsAndroid.RESULTS.GRANTED &&
-                cameraStatus === PermissionsAndroid.RESULTS.GRANTED
-            );
-        }
-    };
-
-    return await getRequestPermissionPromise();
-}
 
 const formatData = (photos, numColumns) => {
     const numberOfFullRows = Math.floor(photos.length / numColumns);
@@ -86,6 +29,10 @@ const formatData = (photos, numColumns) => {
     return photos;
 };
 
+const getSelectMediaIndex = (selectedPhotos, image) => {
+    return selectedPhotos.findIndex(photo => photo.uri === image.uri);
+};
+
 const PhotoGrid = ({ photos, loadMorePhotos, onSelectImage, selectedPhotos, isMultiSelect }) => {
     const renderItem = ({ item, index }) => {
         if (item.empty) {
@@ -93,7 +40,7 @@ const PhotoGrid = ({ photos, loadMorePhotos, onSelectImage, selectedPhotos, isMu
         }
 
         const isSelected = selectedPhotos.some(photo => photo.uri === item.uri);
-        const indexInSelectedPhotos = selectedPhotos.indexOf(item);
+        const indexInSelectedPhotos = getSelectMediaIndex(selectedPhotos, item);
 
         return (
             <TouchableOpacity style={styles.item} onPress={() => onSelectImage(item)}>
@@ -129,9 +76,9 @@ const PhotoGrid = ({ photos, loadMorePhotos, onSelectImage, selectedPhotos, isMu
             style={styles.container}
             renderItem={renderItem}
             numColumns={numColumns}
-            keyExtractor={(item, index) => index.toString()}
+            keyExtractor={(_, index) => index.toString()}
             onEndReached={loadMorePhotos}
-            onEndReachedThreshold={.5}
+            onEndReachedThreshold={.2}
         />
     );
 };
@@ -158,7 +105,7 @@ const ImageSelector = ({ navigation, onClose }) => {
 
         const gallery = await MediaLibrary.getAssetsAsync({
             first: 20 * page,
-            mediaType: ['video'],
+            mediaType: ['video', 'photo'],
             sortBy: ['creationTime'],
         });
 
@@ -238,9 +185,10 @@ const ImageSelector = ({ navigation, onClose }) => {
         }
 
         return (
-            <PannableImage
+            <Image
                 key={lastAddedPhoto.uri}
-                image={lastAddedPhoto}
+                source={{ uri: lastAddedPhoto.uri }}
+                style={styles.selectedImage}
             />
         );
 
@@ -270,7 +218,6 @@ const ImageSelector = ({ navigation, onClose }) => {
     const openImagePicker = () => {
         const options = {
             title: 'Select Images',
-
             selectionLimit: isMultiSelect ? 5 : 1,
         };
 
@@ -280,8 +227,7 @@ const ImageSelector = ({ navigation, onClose }) => {
             } else if (response.error) {
                 console.log('ImagePicker Error: ', response.error);
             } else {
-                const selectedImages = response.assets.map(asset => ({ uri: asset.uri }));
-                setSelectedPhotos(selectedImages);
+                setSelectedPhotos(response.assets);
             }
         });
     };
@@ -306,7 +252,6 @@ const ImageSelector = ({ navigation, onClose }) => {
     };
 
     return (
-        // <GestureHandlerRootView style={{ flex: 1, backgroundColor: 'black' }}>
         <SafeAreaView style={{ flex: 1 }}>
             <View style={styles.header}>
                 <View style={{
@@ -389,7 +334,6 @@ const ImageSelector = ({ navigation, onClose }) => {
                 />
             </View>
         </SafeAreaView>
-        // </GestureHandlerRootView >
     );
 };
 
@@ -456,6 +400,7 @@ const styles = StyleSheet.create({
     selectedImage: {
         width: screenWidth,
         height: '100%',
+        resizeMode: 'contain',
     },
     buttonContainer: {
         display: 'flex',

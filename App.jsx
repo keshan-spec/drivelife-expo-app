@@ -53,6 +53,19 @@ export default function App() {
 
   useEffect(() => {
 
+    const setNotifChannels = async () => {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: 'Welcome to CarCalendar',
+          body: 'Get started by creating your first post',
+        },
+        trigger: null,
+        identifier: 'default',
+      });
+    };
+
+    setNotifChannels();
+
     // Handle user clicking on a notification and open the screen
     const handleNotificationClick = async (response) => {
       const post_id = response.notification.request.content.data.post_id;
@@ -151,7 +164,6 @@ export default function App() {
   const handleBackPress = useCallback(() => {
     try {
       if (webViewRef.current) {
-        console.log(`Can go back:`, webViewcanGoBack);
         if (webViewcanGoBack) {
           webViewRef.current.goBack(); // Attempt to go back within the WebView
           return true; // Prevent default behavior (closing the app)
@@ -309,7 +321,7 @@ export default function App() {
       const options = {
         taskName: 'PostUpload',
         taskTitle: 'Post Upload',
-        taskDesc: 'Uploading media files',
+        taskDesc: 'Uploading 0% completed',
         taskIcon: {
           name: 'ic_launcher',
           type: 'mipmap',
@@ -339,13 +351,8 @@ export default function App() {
     return (
       <View style={{
         position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        padding: 10,
-        justifyContent: 'center',
-        alignItems: 'center',
+        zIndex: 999,
+        backgroundColor: 'black',
       }}>
         <Text style={{
           color: 'white',
@@ -358,8 +365,9 @@ export default function App() {
   return (
     <SafeAreaView style={{
       flex: 1,
+      position: 'relative',
     }}>
-      {BackgroundService.isRunning() && renderUploadProgress()}
+      {renderUploadProgress()}
       {view === 'createPost' && (
         <CreatePost
           onClose={() => setView('webview')}

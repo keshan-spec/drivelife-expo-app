@@ -26,6 +26,10 @@ const CreatePost = ({
         Poppins_700Bold
     });
 
+    if (!fontsLoaded) {
+        return null;
+    }
+
     return (
         <PostProvider>
             <NavigationContainer>

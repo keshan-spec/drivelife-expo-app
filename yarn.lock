@@ -3452,7 +3452,7 @@ expo-modules-autolinking@1.2.0:
     find-up "^5.0.0"
     fs-extra "^9.1.0"
 
-expo-modules-core@1.2.7, expo-modules-core@~1.2.7:
+expo-modules-core@1.2.7:
   version "1.2.7"
   resolved "https://registry.npmjs.org/expo-modules-core/-/expo-modules-core-1.2.7.tgz"
   integrity sha512-sulqn2M8+tIdxi6QFkKppDEzbePAscgE2LEHocYoQOgHxJpeT7axE0Hkzc+81EeviQilZzGeFZMtNMGh3c9yJg==
@@ -3474,11 +3474,6 @@ expo-notifications@~0.18.1:
     expo-constants "~14.2.0"
     fs-extra "^9.1.0"
     uuid "^3.4.0"
-
-expo-permissions@~14.1.1:
-  version "14.1.1"
-  resolved "https://registry.npmjs.org/expo-permissions/-/expo-permissions-14.1.1.tgz"
-  integrity sha512-hOuAOBz+ZLsSJ3E8Ere/oA7YIYLNGf9fCApTi9OQmeJyCBsBHynf1yqMfVVpuDcCMixZ2XzsWlScq75f+7U1dQ==
 
 expo-splash-screen@~0.18.2:
   version "0.18.2"
@@ -6032,11 +6027,6 @@ react-native-uuid@^2.0.2:
   version "2.0.2"
   resolved "https://registry.npmjs.org/react-native-uuid/-/react-native-uuid-2.0.2.tgz"
   integrity sha512-5ypj/hV58P+6VREdjkW0EudSibsH3WdqDERoHKnD9syFWjF+NfRWWrJb2sa3LIwI5zpzMvUiabs+DX40WHpEMw==
-
-react-native-video@^6.2.0:
-  version "6.2.0"
-  resolved "https://registry.npmjs.org/react-native-video/-/react-native-video-6.2.0.tgz"
-  integrity sha512-7TWKGBkKrwR9V+SI6NB9YWWDZbto3fpT/02s8RnrFEac0h5aEJYe6NqTmz3TcFmIRSNepg2UsEvWGKNpWn4sCA==
 
 react-native-web@^0.18.10:
   version "0.18.10"

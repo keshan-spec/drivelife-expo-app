@@ -12,7 +12,7 @@
       "backgroundColor": "#ffffff"
     },
     "assetBundlePatterns": [
-      "**/*"
+      "assets/*"
     ],
     "ios": {
       "supportsTablet": true,
@@ -98,7 +98,7 @@
         "expo-notifications",
         {
           "sounds": [
-            "./assets/notification.wav"
+            "./assets/custom_sound.wav"
           ]
         }
       ]

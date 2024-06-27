@@ -1,4 +1,4 @@
-import { SafeAreaView, AppState, Alert, Linking, RefreshControl, ScrollView, BackHandler, View, Text, Platform } from "react-native";
+import { SafeAreaView, AppState, Alert, Linking, RefreshControl, ScrollView, BackHandler, Platform, ActivityIndicator, Image, View } from "react-native";
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { WebView } from 'react-native-webview';
 import OneSignal from 'react-native-onesignal';
@@ -30,6 +30,8 @@ Notifications.setNotificationHandler({
   }),
 });
 
+const URL = 'https://phpstack-889362-4370795.cloudwaysapps.com';
+
 export default function App() {
   const [carcalSession, setcarcalSession] = useState('');
   const [onesignalRegistered, setOnesignalRegistered] = useState(false);
@@ -54,13 +56,16 @@ export default function App() {
   useEffect(() => {
 
     const setNotifChannels = async () => {
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: 'Welcome to CarCalendar',
-          body: 'Get started by creating your first post',
+      // create a channel with the custom notification sound
+      await Notifications.setNotificationChannelAsync('primary', {
+        name: 'Primary',
+        importance: Notifications.AndroidImportance.HIGH,
+        vibrationPattern: [0, 250, 250, 250],
+        audioAttributes: {
+          usage: Notifications.AndroidAudioUsage.NOTIFICATION,
+          contentType: Notifications.AndroidAudioContentType.SONIFICATION,
         },
-        trigger: null,
-        identifier: 'default',
+        sound: 'custom_sound.wav',
       });
     };
 
@@ -68,10 +73,10 @@ export default function App() {
 
     // Handle user clicking on a notification and open the screen
     const handleNotificationClick = async (response) => {
-      const post_id = response.notification.request.content.data.post_id;
+      const data = response.notification.request.content.data;
 
-      if (post_id) {
-        setDeepLinkUrl(`https://phpstack-889362-4370795.cloudwaysapps.com/posts/${post_id}`);
+      if (data && data.post_id) {
+        setDeepLinkUrl(`${URL}/posts/${data.post_id}`);
       }
     };
 
@@ -92,11 +97,9 @@ export default function App() {
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    webViewRef.current.reload();
-
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 500);
+    // webViewRef.current.reload();
+    // inject js to refresh the page
+    webViewRef.current.injectJavaScript(`window.location.reload();`);
   }, []);
 
   // Get the users current location
@@ -123,11 +126,9 @@ export default function App() {
 
     try {
       const message = JSON.parse(data);
-      if (message.type === 'allData') {
+
+      if (message.type === 'auth-uid') {
         setcarcalSession(payload.nativeEvent.data);
-      } else if (message.type === 'open') {
-        // const { url } = message
-        // webViewRef.current.injectJavaScript(`window.location.href = '${url}';`)
       } else if (message.type === 'createPost') {
         // check if background service is running
         const isRunning = BackgroundService.isRunning();
@@ -146,13 +147,13 @@ export default function App() {
               body: 'Please login to create a post',
             },
             trigger: null,
+            identifier: 'primary',
           });
           return;
         }
 
         setView('createPost');
-        setcarcalSession(1);
-        console.log(`Create post message:`, message);
+        setcarcalSession(message.user_id);
         setWebviewLoaded(false);
       }
     } catch (error) {
@@ -253,9 +254,6 @@ export default function App() {
 
     // Add a listener for 'url' event
     Linking.addEventListener('url', handleUrl);
-
-    // // Add a listener for 'message' event
-    // webViewRef.current.onMessage = onMessage
 
     // Handles the AppState
     const subscription = AppState.addEventListener('change', nextAppState => {
@@ -361,113 +359,51 @@ export default function App() {
         <ScrollView
           contentContainerStyle={{
             flex: 1,
+            backgroundColor: '#fff',
           }}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              enabled={refresherEnabled}
-            />
-          }>
+        // refreshControl={
+        //   <RefreshControl
+        //     refreshing={refreshing}
+        //     onRefresh={onRefresh}
+        //     enabled={refresherEnabled}
+        //   />
+        // }
+        >
           <WebView
             ref={webViewRef}
-            onLoadEnd={() => {
-              setWebviewLoaded(true);
-            }}
+            // onLoadEnd={() => {
+            //   setWebviewLoaded(true);
+            //   setRefreshing(false);
+            // }}
             source={{ uri: `https://phpstack-889362-4370795.cloudwaysapps.com${deepLinkUrl ? '?deeplink=' + deepLinkUrl : ''}` }}
             // injectedJavaScript={INJECTED_JAVASCRIPT}
             onMessage={onMessage}
-            onScroll={handleScroll}
-            // startInLoadingState={true}
-
+            // onScroll={handleScroll}
             onLoadProgress={({ nativeEvent }) => {
               // This function is called everytime your web view loads a page
               // and here we change the state of can go back
               setWebViewcanGoBack(nativeEvent.canGoBack);
             }}
-            setBuiltInZoomControls={true}
+          // style={{
+          //   flex: !refreshing ? 1 : 0,
+          // }}
+          // renderLoading={() => (
+          //   <View
+          //     style={{
+          //       flex: 1,
+          //       justifyContent: 'center',
+          //       alignItems: 'center',
+          //       height: '100%',
+          //       width: '100%',
+          //       backgroundColor: '#fff',
+          //     }}
+          //   >
+          //     <Image source={require('./assets/loading.gif')} style={{ width: 100, height: 100 }} />
+          //   </View>
+          // )}
           />
         </ScrollView>
       )}
     </SafeAreaView>
   );
 }
-
-// import React from 'react';
-// import Animated, {
-//   useSharedValue,
-//   useAnimatedStyle,
-// } from 'react-native-reanimated';
-// import {
-//   Gesture,
-//   GestureDetector,
-//   GestureHandlerRootView,
-// } from 'react-native-gesture-handler';
-// import { StyleSheet, Dimensions } from 'react-native';
-
-// function clamp(val, min, max) {
-//   return Math.min(Math.max(val, min), max);
-// }
-
-// const { width, height } = Dimensions.get('screen');
-
-// export default function App() {
-//   const translationX = useSharedValue(0);
-//   const translationY = useSharedValue(0);
-//   const prevTranslationX = useSharedValue(0);
-//   const prevTranslationY = useSharedValue(0);
-
-//   const animatedStyles = useAnimatedStyle(() => ({
-//     transform: [
-//       { translateX: translationX.value },
-//       { translateY: translationY.value },
-//     ],
-//   }));
-
-//   const pan = Gesture.Pan()
-//     .minDistance(1)
-//     .onStart(() => {
-//       prevTranslationX.value = translationX.value;
-//       prevTranslationY.value = translationY.value;
-//     })
-//     .onUpdate((event) => {
-//       const maxTranslateX = 500 / 2 - 50;
-//       const maxTranslateY = height / 2 - 50;
-
-//       translationX.value = clamp(
-//         prevTranslationX.value + event.translationX,
-//         -maxTranslateX,
-//         maxTranslateX
-//       );
-//       translationY.value = clamp(
-//         prevTranslationY.value + event.translationY,
-//         -maxTranslateY,
-//         maxTranslateY
-//       );
-//     })
-//     .runOnJS(true);
-
-//   return (
-//     <GestureHandlerRootView style={styles.container}>
-//       <GestureDetector gesture={pan}>
-//         <Animated.View style={[animatedStyles, styles.box]}></Animated.View>
-//       </GestureDetector>
-//     </GestureHandlerRootView>
-//   );
-// }
-
-// const styles = StyleSheet.create({
-//   container: {
-//     width: 500,
-//     height: 500,
-//     backgroundColor: '#f1f1f1',
-//     alignItems: 'center',
-//     justifyContent: 'center',
-//   },
-//   box: {
-//     width: 100,
-//     height: 100,
-//     backgroundColor: '#b58df1',
-//     borderRadius: 20,
-//   },
-// });

@@ -216,9 +216,9 @@ const addNotification = async (title, message, data = null) => {
             title,
             body: message,
             data: data,
-            vibrate: true,
         },
-        trigger: { seconds: 2 },
+        trigger: null,
+        identifier: 'primary',
     });
 };
 

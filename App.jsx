@@ -309,14 +309,15 @@ export default function App() {
         } else {
           return false; // Default behavior (close the app)
         }
+      } else {
+        setView('webview');
+        return true;
       }
-
-      return false;
     } catch (error) {
       console.log(`Error going back:`, error);
       return false; // Default behavior (close the app)
     }
-  }, [webViewcanGoBack]);
+  }, [webViewcanGoBack, view]);
 
   const userRegisteredInOneSignal = async () => {
     if (carcalSession !== '' && carcalSession !== null) {

@@ -12,10 +12,10 @@ import { usePostProvider } from './ContextProvider';
 
 import CustomVideo from './Components/Video';
 import { stat } from 'react-native-fs';
+import { checkCameraPermission, showSettingsAlert } from '../permissions/camera';
 
 const numColumns = 4;
 const screenWidth = Dimensions.get('window').width;
-
 
 const formatData = (photos, numColumns) => {
     const numberOfFullRows = Math.floor(photos.length / numColumns);
@@ -99,45 +99,55 @@ const ImageSelector = ({ navigation, onClose }) => {
 
 
     const getPhotos = async (page) => {
-        if (Platform.OS === "android" && !(await MediaLibrary.requestPermissionsAsync())) {
-            return;
-        }
 
-        const gallery = await MediaLibrary.getAssetsAsync({
-            first: 20 * page,
-            mediaType: ['video', 'photo'],
-            sortBy: ['creationTime'],
-        });
 
-        const { assets, hasNextPage } = gallery;
+        try {
+            if (Platform.OS === "android" && !(await MediaLibrary.requestPermissionsAsync())) {
+                return;
+            }
 
-        if (!hasNextPage) {
-            setHasNextPage(false);
-        }
+            const gallery = await MediaLibrary.getAssetsAsync({
+                first: 20 * page,
+                mediaType: ['video', 'photo'],
+                sortBy: ['creationTime'],
+            });
 
-        const images = assets.map(async (asset) => {
-            let { size } = await stat(asset.uri);
+            const { assets, hasNextPage } = gallery;
 
-            const mimeType = asset.filename.split('.').pop();
-            const type = asset.mediaType === 'photo' ? 'image' : 'video';
+            if (!hasNextPage) {
+                setHasNextPage(false);
+            }
 
-            return {
-                uri: asset.uri,
-                fileName: asset.filename,
-                fileSize: size,
-                type: `${type}/${mimeType}`,
-                width: asset.width,
-                height: asset.height,
-                id: asset.id,
-            };
-        });
+            const images = assets.map(async (asset) => {
+                let { size } = await stat(asset.uri);
 
-        const media = await Promise.all(images);
+                const mimeType = asset.filename.split('.').pop();
+                const type = asset.mediaType === 'photo' ? 'image' : 'video';
 
-        setPhotos(media);
+                return {
+                    uri: asset.uri,
+                    fileName: asset.filename,
+                    fileSize: size,
+                    type: `${type}/${mimeType}`,
+                    width: asset.width,
+                    height: asset.height,
+                    id: asset.id,
+                };
+            });
 
-        if (selectedPhotos.length === 0 && media.length > 0) {
-            setSelectedPhotos([media[0]]);
+            const media = await Promise.all(images);
+
+            setPhotos(media);
+
+            if (selectedPhotos.length === 0 && media.length > 0) {
+                setSelectedPhotos([media[0]]);
+            }
+        } catch (error) {
+            console.log('Error getting photos', error);
+            showSettingsAlert({
+                title: 'Storage Permission',
+                message: 'Storage access is required to select photos. Please enable it in the settings.',
+            });
         }
     };
 
@@ -232,7 +242,11 @@ const ImageSelector = ({ navigation, onClose }) => {
         });
     };
 
-    const openCamera = () => {
+    const openCamera = async () => {
+        const results = await checkCameraPermission();
+        if (!results) {
+            return;
+        }
 
         launchCamera({
             title: 'Take a photo',

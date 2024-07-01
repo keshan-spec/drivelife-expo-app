@@ -1,21 +1,18 @@
-export const API_URL = 'https://wordpress-889362-4267074.cloudwaysapps.com/uk';
 
 import AWS from 'aws-sdk';
 import RNFS from 'react-native-fs';
-
 import uuid from 'react-native-uuid';
-import { Buffer } from "buffer";
-import Constants from 'expo-constants';
-
 import BackgroundService from 'react-native-background-actions';
-import * as Notifications from 'expo-notifications';
-
 import { getImageMetaData, getVideoMetaData } from 'react-native-compressor';
-
 import RNVideoHelper from 'react-native-video-helper';
 
+import { Buffer } from "buffer";
+import Constants from 'expo-constants';
+import * as Notifications from 'expo-notifications';
 
+const API_URL = Constants.expoConfig.extra.headlessAPIUrl;
 const BUCKET_NAME = Constants.expoConfig.extra.awsBucketName;
+const MIN_COMPRESSION_SIZE = 1024 * 1024 * 20; // 20MB
 
 AWS.config.update({
     region: Constants.expoConfig.extra.awsRegion,
@@ -74,8 +71,6 @@ const completeMultipartUpload = async (bucketName, fileName, uploadId, parts) =>
     return response;
 };
 
-
-const MIN_COMPRESSION_SIZE = 1024 * 1024 * 20; // 20MB
 const compressMedia = async (media, type) => {
     if (type === 'image') {
         // const compressedImage = await Image.compress(media.uri, {
@@ -128,7 +123,7 @@ const compressMedia = async (media, type) => {
     return null;
 };
 
-export const uploadFileInChunks = async (user_id, mediaList) => {
+const uploadFileInChunks = async (user_id, mediaList) => {
     try {
         const uploadedData = [];
         let completeStatusPercent = 0;

@@ -1,9 +1,9 @@
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { SafeAreaView, AppState, Alert, Linking, ScrollView, BackHandler, Platform } from "react-native";
-import { useEffect, useState, useRef, useCallback } from 'react';
-import { WebView } from 'react-native-webview';
+import { WebView, WebViewMessageEvent } from 'react-native-webview';
 
 import 'expo-dev-client';
-import Geolocation from '@react-native-community/geolocation';
+import Geolocation, { GeolocationResponse } from '@react-native-community/geolocation';
 import OneSignal from 'react-native-onesignal';
 import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
@@ -13,14 +13,7 @@ import BackgroundService from 'react-native-background-actions';
 import { GetAllPermissions } from './utils';
 import CreatePost from "./CreatePost/CreatePostPage";
 import { addPost } from "./CreatePost/actions/create-post";
-
-const INJECTED_JAVASCRIPT = `(function() {
-    const allData = window.localStorage.getItem('ccevents_ukey');
-    // add custom localstorage item to say that the user is using the app
-    window.localStorage.setItem('ccevents_app', 'true');
-    // window.ReactNativeWebView.postMessage(allData);
-    window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'allData', data: allData }));
-})();`;
+import { CreatePostProps, WebMessage } from 'types';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -43,17 +36,19 @@ const options = {
   linkingURI: 'uploadFile',
 };
 
+type Coords = GeolocationResponse['coords'];
+
 export default function App() {
   const [carcalSession, setCarcalSession] = useState('');
   const [onesignalRegistered, setOnesignalRegistered] = useState(false);
   const [playerId, setPlayerId] = useState('');
-  const [location, setLocation] = useState();
+  const [location, setLocation] = useState<Coords>();
   const [permissionsLocation, setPermissionsLocation] = useState({ denied: false, granted: false });
 
   const [view, setView] = useState('webview');
 
   const appState = useRef(AppState.currentState);
-  const webViewRef = useRef();
+  const webViewRef = useRef<WebView | null>(null);
 
   const [deepLinkUrl, setDeepLinkUrl] = useState('');
 
@@ -78,7 +73,7 @@ export default function App() {
     setNotifChannels();
 
     // Handle user clicking on a notification and open the screen
-    const handleNotificationClick = async (response) => {
+    const handleNotificationClick = async (response: Notifications.NotificationResponse) => {
       const data = response.notification.request.content.data;
 
       if (data && data.post_id) {
@@ -97,15 +92,17 @@ export default function App() {
 
   // OneSignal Initialization
   useEffect(() => {
-    OneSignal.setAppId(Constants.manifest.extra.onesignal.app_id);
+    OneSignal.setAppId(Constants.expoConfig?.extra?.onesignal.app_id);
     OneSignal.addSubscriptionObserver((event) => {
       // if event.to is true, the user is subscribed
       // console.log(`OneSignal Subscription Changed: ${event}`);
       if (event.to) {
         // get user id 
         OneSignal.getDeviceState().then((deviceState) => {
-          console.log(`OneSignal Player ID: ${deviceState.userId}`);
-          setPlayerId(deviceState.userId);
+          if (deviceState && deviceState.userId) {
+            console.log(`OneSignal Player ID: ${deviceState.userId}`);
+            setPlayerId(deviceState.userId);
+          }
         });
       }
     });
@@ -116,16 +113,17 @@ export default function App() {
 
       if (Platform.OS === 'android') {
         // Location
-        if (res["android.permission.ACCESS_FINE_LOCATION"] === "granted") {
+        if (res?.["android.permission.ACCESS_FINE_LOCATION"] === "granted") {
           setPermissionsLocation({ denied: false, granted: true });
           getCurrentPosition();
         } else setPermissionsLocation({ denied: true, granted: false });
 
         // Notifications
-        if (res["android.permission.POST_NOTIFICATIONS"] === "granted") {
+        if (res?.["android.permission.POST_NOTIFICATIONS"] === "granted") {
           OneSignal.getDeviceState().then((deviceState) => {
-            console.log(`OneSignal Player ID: ${deviceState.userId}`);
-            setPlayerId(deviceState.userId);
+            if (deviceState && deviceState.userId) {
+              setPlayerId(deviceState.userId);
+            }
           });
         } else {
           console.log('Notification permission denied');
@@ -167,7 +165,9 @@ export default function App() {
 
   // Event listeners
   useEffect(() => {
-    const handleUrl = (url) => {
+    const handleUrl = (url: {
+      url: string;
+    }) => {
       setDeepLinkUrl(url.url);
     };
 
@@ -191,7 +191,7 @@ export default function App() {
 
     // Remove event listener on unmount
     return () => {
-      Linking.removeEventListener('url', handleUrl);
+      Linking.removeAllListeners('url');
       subscription.remove();
     };
   }, []);
@@ -207,7 +207,7 @@ export default function App() {
 
         // Set the external user id in OneSignal
         if (carcalSession && !onesignalRegistered) {
-          OneSignal.setAppId(Constants.manifest.extra.onesignal.app_id);
+          OneSignal.setAppId(Constants.expoConfig?.extra?.onesignal.app_id);
 
           console.log(`Setting external user id in OneSignal: ${carcalSession}, ${playerId}`);
           OneSignal.setExternalUserId(`${carcalSession}`, playerId, (results) => {
@@ -224,7 +224,7 @@ export default function App() {
     caption,
     location,
     taggedEntities,
-  }) => {
+  }: CreatePostProps) => {
     try {
       setDeepLinkUrl(`https://phpstack-889362-4370795.cloudwaysapps.com/`);
       setView('webview');
@@ -248,7 +248,9 @@ export default function App() {
   // Get the users current location
   const getCurrentPosition = () => {
     Geolocation.getCurrentPosition((pos) => {
-      if (pos.coords) setLocation(pos.coords);
+      if (pos.coords) {
+        setLocation(pos.coords);
+      }
     }, (error) => {
       Alert.alert("CarCalendar", error.message, [
         { text: "OK" },
@@ -264,11 +266,11 @@ export default function App() {
     );
   };
 
-  const onMessage = async (payload) => {
+  const onMessage = async (payload: WebViewMessageEvent) => {
     const data = payload.nativeEvent.data;
 
     try {
-      const message = JSON.parse(data);
+      const message = JSON.parse(data) as WebMessage;
 
       if (message.type === 'authData') {
         setCarcalSession(message.user_id);
@@ -320,13 +322,6 @@ export default function App() {
       return false; // Default behavior (close the app)
     }
   }, [webViewcanGoBack, view]);
-
-  const userRegisteredInOneSignal = async () => {
-    if (carcalSession !== '' && carcalSession !== null) {
-      const deviceState = await OneSignal.getDeviceState();
-      return deviceState.userId === carcalSession;
-    }
-  };
 
   return (
     <SafeAreaView style={{

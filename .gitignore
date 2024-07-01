@@ -27,3 +27,5 @@ credentials.json
 
 # */**/config.json
 eas.json
+
+server.sh

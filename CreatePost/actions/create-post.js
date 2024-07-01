@@ -14,7 +14,8 @@ import { getImageMetaData, getVideoMetaData } from 'react-native-compressor';
 
 import RNVideoHelper from 'react-native-video-helper';
 
-const BUCKET_NAME = 'drivelife-media';
+
+const BUCKET_NAME = Constants.expoConfig.extra.awsBucketName;
 
 AWS.config.update({
     region: Constants.expoConfig.extra.awsRegion,

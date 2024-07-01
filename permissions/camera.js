@@ -44,3 +44,33 @@ export const showSettingsAlert = ({
         ]
     );
 };
+
+export const checkStoragePermission = async () => {
+    const permissionType = Platform.OS === "android" ? PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE : PERMISSIONS.IOS.MEDIA_LIBRARY;
+
+    const result = await check(permissionType);
+
+    switch (result) {
+        case RESULTS.UNAVAILABLE:
+            return false;
+        case RESULTS.DENIED:
+            return await requestStoragePermission();
+        case RESULTS.LIMITED:
+        case RESULTS.GRANTED:
+            return true;
+        case RESULTS.BLOCKED:
+            showSettingsAlert();
+            break;
+    }
+};
+
+export const requestStoragePermission = async () => {
+    const permissionType = Platform.OS === "android" ? PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE : PERMISSIONS.IOS.MEDIA_LIBRARY;
+    const result = await request(permissionType);
+
+    if (result === RESULTS.GRANTED) {
+        return true;
+    } else {
+        showSettingsAlert();
+    }
+};

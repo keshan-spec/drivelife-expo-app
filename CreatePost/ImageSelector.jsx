@@ -12,7 +12,7 @@ import { usePostProvider } from './ContextProvider';
 
 import CustomVideo from './Components/Video';
 import { stat } from 'react-native-fs';
-import { checkCameraPermission, showSettingsAlert } from '../permissions/camera';
+import { checkCameraPermission, checkStoragePermission, showSettingsAlert } from '../permissions/camera';
 
 const numColumns = 4;
 const screenWidth = Dimensions.get('window').width;
@@ -49,6 +49,20 @@ const PhotoGrid = ({ photos, loadMorePhotos, onSelectImage, selectedPhotos, isMu
                     source={{ uri: item.uri }}
                     style={[styles.image, isSelected && styles.selectedImageTile]}
                 />
+
+                {/* if not selected */}
+                {isMultiSelect && !isSelected && (
+                    <MaterialCommunityIcons
+                        name="checkbox-blank-circle-outline"
+                        size={25}
+                        color="white"
+                        style={{
+                            position: 'absolute',
+                            top: 5,
+                            right: 5,
+                        }}
+                    />
+                )}
 
                 {isMultiSelect && isSelected && (
                     // number
@@ -97,10 +111,7 @@ const ImageSelector = ({ navigation, onClose }) => {
         }
     }, [selectedPhotos]);
 
-
     const getPhotos = async (page) => {
-
-
         try {
             if (Platform.OS === "android" && !(await MediaLibrary.requestPermissionsAsync())) {
                 return;
@@ -164,6 +175,7 @@ const ImageSelector = ({ navigation, onClose }) => {
     }, [loading, hasNextPage]);
 
     const onSelectImage = (image) => {
+        console.log('selected image', image);
         if (isMultiSelect) {
             setSelectedPhotos((prevSelectedPhotos) => {
                 if (prevSelectedPhotos.some(photo => photo.uri === image.uri)) {
@@ -199,28 +211,6 @@ const ImageSelector = ({ navigation, onClose }) => {
                 key={lastAddedPhoto.uri}
                 source={{ uri: lastAddedPhoto.uri }}
                 style={styles.selectedImage}
-            />
-        );
-
-        return (
-            <FlatList
-                data={selectedPhotos.reverse()}
-                horizontal
-                pagingEnabled
-                keyExtractor={(item, index) => index.toString()}
-                renderItem={({ item }) => {
-                    const isVideo = item.type && item.type.startsWith('video');
-
-                    if (isVideo) {
-                        return <CustomVideo video={item} />;
-                    }
-
-                    return <Image
-                        source={{ uri: item.uri }}
-                        style={styles.selectedImage}
-                        resizeMode="cover"
-                    />;
-                }}
             />
         );
     };
@@ -334,9 +324,9 @@ const ImageSelector = ({ navigation, onClose }) => {
                                 )}
                         </TouchableOpacity>
 
-                        <TouchableOpacity onPress={openCamera} style={styles.multiSelectBtn}>
+                        {/* <TouchableOpacity onPress={openCamera} style={styles.multiSelectBtn}>
                             <Ionicons name="camera-outline" size={18} color="white" />
-                        </TouchableOpacity>
+                        </TouchableOpacity> */}
                     </View>
                 </View>
                 <PhotoGrid
@@ -403,7 +393,7 @@ const styles = StyleSheet.create({
     },
     topHalf: {
         flex: 1,
-        justifyContent: 'flex-start',
+        justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: '#151617',
     },
@@ -414,6 +404,7 @@ const styles = StyleSheet.create({
     selectedImage: {
         width: screenWidth,
         height: '100%',
+        maxHeight: 1380,
         resizeMode: 'contain',
     },
     buttonContainer: {

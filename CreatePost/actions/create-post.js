@@ -1,29 +1,31 @@
 export const API_URL = 'https://wordpress-889362-4267074.cloudwaysapps.com/uk';
-// https://javascript.plainenglish.io/large-file-uploads-in-the-background-with-react-native-1b9fe49e367c
-
-// NEED TO ADD THIS TO AndroidManifest.xml <service android:name="com.asterinet.react.bgactions.RNBackgroundActionsTask" android:foregroundServiceType="dataSync" />;
 
 import AWS from 'aws-sdk';
 import RNFS from 'react-native-fs';
 
 import uuid from 'react-native-uuid';
 import { Buffer } from "buffer";
-import config from './config.json';
+import Constants from 'expo-constants';
 
 import BackgroundService from 'react-native-background-actions';
 import * as Notifications from 'expo-notifications';
 
-import { Image, Video, getImageMetaData, getVideoMetaData } from 'react-native-compressor';
+import { getImageMetaData, getVideoMetaData } from 'react-native-compressor';
 
+import RNVideoHelper from 'react-native-video-helper';
 
 const BUCKET_NAME = 'drivelife-media';
 
 AWS.config.update({
-    ...config
+    region: Constants.expoConfig.extra.awsRegion,
+    credentials: {
+        accessKeyId: Constants.expoConfig.extra.awsAccessKeyId,
+        secretAccessKey: Constants.expoConfig.extra.awsSecretAccessKey,
+    },
 });
 
 const s3 = new AWS.S3();
-const CHUNK_SIZE = 1024 * 1024 * 5; // 1MB
+const CHUNK_SIZE = 1024 * 1024 * 5; // 5MB
 
 const initiateMultipartUpload = async (fileName, bucketName) => {
     try {
@@ -71,6 +73,8 @@ const completeMultipartUpload = async (bucketName, fileName, uploadId, parts) =>
     return response;
 };
 
+
+const MIN_COMPRESSION_SIZE = 1024 * 1024 * 20; // 20MB
 const compressMedia = async (media, type) => {
     if (type === 'image') {
         // const compressedImage = await Image.compress(media.uri, {
@@ -92,8 +96,16 @@ const compressMedia = async (media, type) => {
             filename: `${uuid.v4()}.${extension}`,
         };
     } else if (type === 'video') {
-        const compressedVideo = await Video.compress(media.uri, {
-            compressionMethod: 'auto',
+        // check if the video is over 10MB
+        if (media.fileSize < MIN_COMPRESSION_SIZE) {
+            return {
+                ...media,
+                filename: `${uuid.v4()}.mp4`,
+            };
+        }
+
+        const compressedVideo = await RNVideoHelper.compress(media.uri, {
+            quality: 'high',
         });
 
         const {
@@ -108,7 +120,7 @@ const compressMedia = async (media, type) => {
             height,
             width,
             fileSize: size,
-            filename: `${uuid.v4()}.${extension}`,
+            filename: `${uuid.v4()}.${extension}`
         };
     }
 

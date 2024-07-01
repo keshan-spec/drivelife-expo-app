@@ -31,6 +31,17 @@ Notifications.setNotificationHandler({
 });
 
 const URL = 'https://phpstack-889362-4370795.cloudwaysapps.com';
+const options = {
+  taskName: 'PostUpload',
+  taskTitle: 'Post Upload',
+  taskDesc: 'Refining your post...',
+  taskIcon: {
+    name: 'ic_launcher',
+    type: 'mipmap',
+  },
+  color: '#ff00ff',
+  linkingURI: 'uploadFile',
+};
 
 export default function App() {
   const [carcalSession, setCarcalSession] = useState('');
@@ -215,28 +226,19 @@ export default function App() {
     taggedEntities,
   }) => {
     try {
-      const options = {
-        taskName: 'PostUpload',
-        taskTitle: 'Post Upload',
-        taskDesc: 'Uploading 0% completed',
-        taskIcon: {
-          name: 'ic_launcher',
-          type: 'mipmap',
-        },
-        color: '#ff00ff',
-        linkingURI: 'uploadFile',
-      };
-
       setDeepLinkUrl(`https://phpstack-889362-4370795.cloudwaysapps.com/`);
       setView('webview');
 
-      await BackgroundService.start(() => addPost({
-        user_id: carcalSession,
-        mediaList: media,
-        caption,
-        location,
-        taggedEntities,
-      }), options);
+      await BackgroundService.start(() =>
+        addPost({
+          user_id: carcalSession,
+          mediaList: media,
+          caption,
+          location,
+          taggedEntities,
+        }),
+        options
+      );
     } catch (error) {
       await BackgroundService.stop();
       console.error('Error uploading post:', error);

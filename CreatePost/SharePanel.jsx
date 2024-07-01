@@ -198,8 +198,6 @@ const SharePost = ({ navigation, onComplete }) => {
     );
 };
 
-const screenWidth = Dimensions.get('window').width;
-
 const styles = StyleSheet.create({
     container: {
         flex: 1,

@@ -1,22 +1,28 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, memo } from "react";
 import { Dimensions, View } from "react-native";
 import { StyleSheet } from "react-native";
 import { TouchableWithoutFeedback } from "react-native-gesture-handler";
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { usePostProvider } from "../ContextProvider";
 
-import { Video } from 'expo-av';
+import { ResizeMode, Video } from 'expo-av';
 import * as MediaLibrary from 'expo-media-library';
 
 const screenWidth = Dimensions.get('window').width;
 
-const CustomVideo = ({ video }) => {
+
+interface CustomVideoProps {
+    video: {
+        uri: string;
+        id: string;
+    };
+}
+
+const CustomVideo = ({ video }: CustomVideoProps) => {
     const { step } = usePostProvider();
     const [paused, setPaused] = useState(false);
 
-    const [media, setMedia] = useState({
-        uri: null,
-    });
+    const [media, setMedia] = useState<MediaLibrary.AssetInfo | null>(null);
 
     useEffect(() => {
         const loadVideo = async () => {
@@ -50,10 +56,10 @@ const CustomVideo = ({ video }) => {
                 </>
             )}
 
-            {media.uri && (
+            {media && (
                 <Video
                     key={media.uri}
-                    resizeMode="contain"
+                    resizeMode={ResizeMode.CONTAIN}
                     source={{ uri: media.uri }}
                     style={styles.selectedImage}
                     shouldPlay={!paused}
@@ -73,4 +79,4 @@ const styles = StyleSheet.create({
 
 });
 
-export default CustomVideo;
+export default memo(CustomVideo);

@@ -9,3 +9,10 @@ export interface CreatePostProps {
     location?: string;
     taggedEntities?: any[];
 }
+
+export interface TagEntity {
+    name: string;
+    type: string;
+    entity_id: string;
+    image: string;
+}

@@ -1,12 +1,18 @@
 
 import React from 'react';
 import { View, Text, FlatList, TouchableOpacity, Image, StyleSheet, ScrollView } from 'react-native';
+import { TagEntity } from 'types';
 
 // Example data and placeholder image
 const PLACEHOLDER_PFP = 'https://via.placeholder.com/150';
 
-const TagSuggestions = ({ data, setTaggedData }) => {
-    const handleTagClick = (entity) => {
+interface TagSuggestionsProps {
+    data: TagEntity[];
+    setTaggedData: (data: any) => void;
+}
+
+const TagSuggestions = ({ data, setTaggedData }: TagSuggestionsProps) => {
+    const handleTagClick = (entity: TagEntity) => {
         setTaggedData([{
             x: 1,
             y: 1,
@@ -17,7 +23,9 @@ const TagSuggestions = ({ data, setTaggedData }) => {
         }]);
     };
 
-    const renderItem = ({ item }) => (
+    const renderItem = ({ item }: {
+        item: TagEntity;
+    }) => (
         <TouchableOpacity style={styles.tagSuggestion} onPress={() => handleTagClick(item)}>
             <View style={styles.imageContainer}>
                 <Image source={{ uri: item.image || PLACEHOLDER_PFP }} style={styles.image} />
@@ -35,7 +43,7 @@ const TagSuggestions = ({ data, setTaggedData }) => {
             <FlatList
                 data={data}
                 renderItem={renderItem}
-                keyExtractor={(item, index) => index.toString()}
+                keyExtractor={(_, index) => index.toString()}
                 contentContainerStyle={styles.scrollView}
             />
         </View>

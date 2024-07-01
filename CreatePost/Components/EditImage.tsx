@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { StyleSheet, Dimensions } from 'react-native';
 
 import { ImageEditor } from "expo-image-editor";
@@ -6,27 +6,30 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width, height } = Dimensions.get('window');
 
+interface EditImageProps {
+    image: {
+        uri: string;
+        width: number;
+        height: number;
+        originalUri?: string;
+    };
+    onSave: (image: any) => void;
+    onCancel: () => void;
+    aspectLock?: boolean;
+    aspectRatio?: number;
+}
+
 const EditImage = ({
     image,
     onSave,
     onCancel,
     aspectLock = false,
     aspectRatio = 0,
-}) => {
-    const [editorVisible, setEditorVisible] = useState(true);
-    const [imageData, setImageData] = useState({
-        ...image,
-        uri: image.uri,
-    });
-
-    useEffect(() => {
-        console.log('imageData', imageData);
-        console.log('editorVisible', editorVisible);
-    }, [editorVisible]);
-
+}: EditImageProps) => {
     return (
         <SafeAreaView style={styles.container}>
             <ImageEditor
+                visible={true}
                 onCloseEditor={() => {
                     onCancel();
                 }}
@@ -35,7 +38,7 @@ const EditImage = ({
                 lockAspectRatio={aspectLock}
                 onEditingComplete={(result) => {
                     onSave({
-                        ...imageData,
+                        ...image,
                         originalUri: image.originalUri || image.uri,
                         uri: result.uri,
                         width: result.width,

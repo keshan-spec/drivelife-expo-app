@@ -175,7 +175,6 @@ const ImageSelector = ({ navigation, onClose }) => {
     }, [loading, hasNextPage]);
 
     const onSelectImage = (image) => {
-        console.log('selected image', image);
         if (isMultiSelect) {
             setSelectedPhotos((prevSelectedPhotos) => {
                 if (prevSelectedPhotos.some(photo => photo.uri === image.uri)) {
@@ -201,7 +200,6 @@ const ImageSelector = ({ navigation, onClose }) => {
         }
 
         const lastAddedPhoto = selectedPhotos[selectedPhotos.length - 1];
-
         if (lastAddedPhoto && lastAddedPhoto.type && lastAddedPhoto.type.startsWith('video')) {
             return <CustomVideo video={lastAddedPhoto} />;
         }
@@ -218,7 +216,10 @@ const ImageSelector = ({ navigation, onClose }) => {
     const openImagePicker = () => {
         const options = {
             title: 'Select Images',
+            mediaType: 'mixed',
+            presentationStyle: 'formSheet',
             selectionLimit: isMultiSelect ? 5 : 1,
+            includeExtra: true,
         };
 
         launchImageLibrary(options, (response) => {
@@ -227,7 +228,12 @@ const ImageSelector = ({ navigation, onClose }) => {
             } else if (response.error) {
                 console.log('ImagePicker Error: ', response.error);
             } else {
-                setSelectedPhotos(response.assets);
+                const takenPhoto = response.assets[0];
+                const id = takenPhoto.id.split('.')[0];
+                setSelectedPhotos([{
+                    ...takenPhoto,
+                    id,
+                }]);
             }
         });
     };
@@ -250,7 +256,10 @@ const ImageSelector = ({ navigation, onClose }) => {
                 console.log('Camera Error: ', response.error);
             } else {
                 const takenPhoto = response.assets[0];
+                console.log('Taken photo', takenPhoto);
                 setSelectedPhotos([takenPhoto]);
+                setStep(1);
+                navigation.navigate('SharePost');
             }
         });
     };
@@ -291,7 +300,7 @@ const ImageSelector = ({ navigation, onClose }) => {
             <View style={styles.bottomHalf}>
                 <View style={styles.buttonContainer}>
                     <TouchableOpacity onPress={openImagePicker} style={{
-                        padding: 5,
+                        padding: 10,
                         marginLeft: 10,
                         display: 'flex',
                         flexDirection: 'row',
@@ -301,7 +310,7 @@ const ImageSelector = ({ navigation, onClose }) => {
                         <MaterialCommunityIcons name="chevron-down" size={18} color="white" />
                     </TouchableOpacity>
 
-                    <View style={{
+                    {/* <View style={{
                         display: 'flex',
                         flexDirection: 'row',
                         justifyContent: 'center',
@@ -324,10 +333,10 @@ const ImageSelector = ({ navigation, onClose }) => {
                                 )}
                         </TouchableOpacity>
 
-                        {/* <TouchableOpacity onPress={openCamera} style={styles.multiSelectBtn}>
+                        <TouchableOpacity onPress={openCamera} style={styles.multiSelectBtn}>
                             <Ionicons name="camera-outline" size={18} color="white" />
-                        </TouchableOpacity> */}
-                    </View>
+                        </TouchableOpacity>
+                    </View> */}
                 </View>
                 <PhotoGrid
                     photos={photos}

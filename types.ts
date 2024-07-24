@@ -1,6 +1,9 @@
 export interface WebMessage {
-    type: 'authData' | 'createPost';
+    type: 'createPost' | 'addEventPost' | 'authData' | 'signOut';
     user_id: string;
+    page?: string;
+    association_id?: string;
+    association_type?: 'event' | 'venue' | 'garage';
 }
 
 export interface CreatePostProps {

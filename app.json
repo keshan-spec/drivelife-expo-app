@@ -8,8 +8,7 @@
     "userInterfaceStyle": "dark",
     "splash": {
       "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "resizeMode": "contain"
     },
     "assetBundlePatterns": [
       "assets/*"
@@ -98,6 +97,8 @@
       [
         "expo-notifications",
         {
+          "icon": "./assets/ic_stat_onesignal_default.png",
+          "color": "#b89855",
           "sounds": [
             "./assets/custom_sound.wav"
           ]

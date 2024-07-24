@@ -1,7 +1,7 @@
 import { PermissionsAndroid } from 'react-native';
+import Constants from 'expo-constants';
 
-import { } from 'react-native-permissions';
-export const URL = 'https://www.carevents.com';
+export const URL = Constants.expoConfig.extra.headlessAPIUrl;
 
 export async function setExpoTokenInWP(token) {
     // send request to server to save token
@@ -113,3 +113,44 @@ export async function GetAllPermissions() {
     }
     return null;
 }
+
+export const associateDeviceWithUser = async (uid, token) => {
+    // send request to server to save token
+    let url = `${URL}/wp-json/expoapi/v1/associate-user-with-device`;
+
+    let data = {
+        user_id: uid,
+        device_id: token,
+    };
+
+    let response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+    });
+
+    let json = await response.json();
+    return json;
+};
+
+export const setUserAsInactive = async (uid, token) => {
+    // send request to server to save token
+    let url = `${URL}/wp-json/expoapi/v1/set-associated-user-as-inactive`;
+
+    let data = {
+        user_id: uid,
+        device_id: token,
+    };
+
+    let response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+    });
+    // let json = await response.json();
+    // return json;
+};

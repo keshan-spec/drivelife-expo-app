@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { SafeAreaView, AppState, Alert, Linking, ScrollView, BackHandler, Platform } from "react-native";
+import { SafeAreaView, AppState, Alert, Linking, ScrollView, BackHandler, Platform, StatusBar } from "react-native";
 import { WebView, WebViewMessageEvent } from 'react-native-webview';
 
 import 'expo-dev-client';
@@ -10,18 +10,10 @@ import * as Notifications from 'expo-notifications';
 import BackgroundService from 'react-native-background-actions';
 
 // https://stackoverflow.com/questions/54075629/reactnative-permission-always-return-never-ask-again
-import { GetAllPermissions } from './utils';
+import { associateDeviceWithUser, GetAllPermissions, setUserAsInactive } from './utils';
 import CreatePost from "./CreatePost/CreatePostPage";
 import { addPost } from "./CreatePost/actions/create-post";
 import { CreatePostProps, WebMessage } from 'types';
-
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
 
 const URL = 'https://phpstack-889362-4370795.cloudwaysapps.com';
 const options = {
@@ -29,23 +21,24 @@ const options = {
   taskTitle: 'Post Upload',
   taskDesc: 'Refining your post...',
   taskIcon: {
-    name: 'ic_launcher',
-    type: 'mipmap',
+    name: 'notification_icon',
+    type: 'drawable',
   },
-  color: '#ff00ff',
+  color: '#b89855',
   linkingURI: 'uploadFile',
 };
 
 type Coords = GeolocationResponse['coords'];
 
 export default function App() {
-  const [carcalSession, setCarcalSession] = useState('');
-  const [onesignalRegistered, setOnesignalRegistered] = useState(false);
+  const [carcalSession, setCarcalSession] = useState<string | null>(null);
   const [playerId, setPlayerId] = useState('');
   const [location, setLocation] = useState<Coords>();
   const [permissionsLocation, setPermissionsLocation] = useState({ denied: false, granted: false });
 
   const [view, setView] = useState('webview');
+
+  const [messageData, setMessageData] = useState<WebMessage>();
 
   const appState = useRef(AppState.currentState);
   const webViewRef = useRef<WebView | null>(null);
@@ -55,22 +48,34 @@ export default function App() {
   // This state saves whether your WebView can go back
   const [webViewcanGoBack, setWebViewcanGoBack] = useState(false);
 
-  useEffect(() => {
-    const setNotifChannels = async () => {
-      // create a channel with the custom notification sound
-      await Notifications.setNotificationChannelAsync('primary', {
-        name: 'Primary',
-        importance: Notifications.AndroidImportance.HIGH,
-        vibrationPattern: [0, 250, 250, 250],
-        audioAttributes: {
-          usage: Notifications.AndroidAudioUsage.NOTIFICATION,
-          contentType: Notifications.AndroidAudioContentType.SONIFICATION,
-        },
-        sound: 'custom_sound.wav',
-      });
-    };
+  const setNotifChannels = async () => {
+    await Notifications.setNotificationHandler({
+      handleNotification: async (notification) => {
+        console.log('Notification received:', notification);
 
-    setNotifChannels();
+        // Check if the notification has content
+        const { title, body } = notification.request.content;
+
+        if (title && body) {
+          return {
+            shouldShowAlert: true,
+            shouldPlaySound: true,
+            shouldSetBadge: false,
+          };
+        } else {
+          console.log('Contentless notification filtered out');
+          return {
+            shouldShowAlert: false,
+            shouldPlaySound: false,
+            shouldSetBadge: false,
+            priority: Notifications.AndroidNotificationPriority.HIGH,
+          };
+        }
+      },
+    });
+  };
+
+  useEffect(() => {
 
     // Handle user clicking on a notification and open the screen
     const handleNotificationClick = async (response: Notifications.NotificationResponse) => {
@@ -88,7 +93,6 @@ export default function App() {
       notificationClickSubscription.remove();
     };
   }, []);
-
 
   // OneSignal Initialization
   useEffect(() => {
@@ -142,12 +146,15 @@ export default function App() {
     });
 
     OneSignal.setNotificationOpenedHandler((notification) => {
-      console.log('OneSignal: notification opened:', notification);
+      const data = notification.notification.additionalData as { url?: string; };
+      if (data && data.url) {
+        setDeepLinkUrl(`${URL}${data.url}`);
+      }
     });
 
-    OneSignal.setInAppMessageClickHandler((event) => {
-      console.log('OneSignal IAM clicked:', event);
-    });
+    // OneSignal.setInAppMessageClickHandler((event) => {
+    //   console.log('OneSignal IAM clicked:', event);
+    // });
 
     return () => {
       OneSignal.clearHandlers();
@@ -165,9 +172,7 @@ export default function App() {
 
   // Event listeners
   useEffect(() => {
-    const handleUrl = (url: {
-      url: string;
-    }) => {
+    const handleUrl = (url: { url: string; }) => {
       setDeepLinkUrl(url.url);
     };
 
@@ -176,11 +181,7 @@ export default function App() {
 
     // Handles the AppState
     const subscription = AppState.addEventListener('change', nextAppState => {
-      if (
-        appState.current.match(/inactive|background/) &&
-        nextAppState === 'active'
-      ) {
-        console.log('App has come to the foreground!');
+      if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
         if (permissionsLocation.granted == true) {
           getCurrentPosition();
         }
@@ -197,27 +198,29 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (carcalSession) {
-      (async () => {
-
-        // if (location && location !== null) {
-        //   const res = await maybeSetUserLocation(location, carcalSession);
-        //   // console.log(`Location status :`, res)
-        // }
-
-        // Set the external user id in OneSignal
-        if (carcalSession && !onesignalRegistered) {
-          OneSignal.setAppId(Constants.expoConfig?.extra?.onesignal.app_id);
-
-          console.log(`Setting external user id in OneSignal: ${carcalSession}, ${playerId}`);
-          OneSignal.setExternalUserId(`${carcalSession}`, playerId, (results) => {
-            console.log('OneSignal external user id set:', results);
-          });
-          setOnesignalRegistered(true);
-        }
-      })();
-    }
+    setExternalId();
   }, [carcalSession]);
+
+  // Set the external user id in OneSignal
+  const setExternalId = useCallback(async () => {
+    if (carcalSession) {
+      const response = await associateDeviceWithUser(carcalSession, playerId);
+      console.log(`Associate device with user response:`, response);
+      return;
+
+      OneSignal.setAppId(Constants.expoConfig?.extra?.onesignal.app_id);
+      OneSignal.setExternalUserId(`DL-${carcalSession}`, playerId, (results: any) => {
+        if (results.push && results.push.success) {
+          console.log('OneSignal external user id set');
+        }
+      });
+
+      if (location && location !== null) {
+        // const res = await maybeSetUserLocation(location, carcalSession);
+        console.log(`Location status :`, location);
+      }
+    }
+  }, [carcalSession, playerId]);
 
   const onPostCreateBtnPress = useCallback(async ({
     media,
@@ -226,6 +229,8 @@ export default function App() {
     taggedEntities,
   }: CreatePostProps) => {
     try {
+      await setNotifChannels();
+
       setDeepLinkUrl(`https://phpstack-889362-4370795.cloudwaysapps.com/`);
       setView('webview');
 
@@ -236,6 +241,8 @@ export default function App() {
           caption,
           location,
           taggedEntities,
+          association_id: messageData?.association_id,
+          association_type: messageData?.association_type,
         }),
         options
       );
@@ -243,7 +250,7 @@ export default function App() {
       await BackgroundService.stop();
       console.error('Error uploading post:', error);
     }
-  }, [carcalSession]);
+  }, [carcalSession, messageData]);
 
   // Get the users current location
   const getCurrentPosition = () => {
@@ -272,32 +279,42 @@ export default function App() {
     try {
       const message = JSON.parse(data) as WebMessage;
 
-      if (message.type === 'authData') {
-        setCarcalSession(message.user_id);
-      } else if (message.type === 'createPost') {
-        const isRunning = BackgroundService.isRunning();
+      switch (message.type) {
+        case 'authData':
+          setCarcalSession(message.user_id);
+          break;
+        case 'createPost':
+          const isRunning = BackgroundService.isRunning();
 
-        if (isRunning) {
-          Alert.alert('CarCalendar', 'Please wait for the current post to finish uploading', [
-            { text: 'OK' }
-          ]);
-          return;
-        }
+          if (isRunning) {
+            Alert.alert('CarCalendar', 'Please wait for the current post to finish uploading', [
+              { text: 'OK' }
+            ]);
+            return;
+          }
 
-        if (!message.user_id || message.user_id === '') {
-          await Notifications.scheduleNotificationAsync({
-            content: {
-              title: 'Authentication Required',
-              body: 'Please login to create a post',
-            },
-            trigger: null,
-            identifier: 'primary',
-          });
-          return;
-        }
+          if (!message.user_id || message.user_id === '') {
+            await Notifications.scheduleNotificationAsync({
+              content: {
+                title: 'Authentication Required',
+                body: 'Please login to create a post',
+              },
+              trigger: null,
+              identifier: 'primary',
+            });
+            return;
+          }
 
-        setView('createPost');
-        setCarcalSession(message.user_id);
+          setView('createPost');
+          setCarcalSession(message.user_id);
+          setMessageData(message);
+          break;
+        case 'signOut':
+          await setUserAsInactive(carcalSession, playerId);
+          setCarcalSession(null);
+          break;
+        default:
+          break;
       }
     } catch (error) {
       console.error('Error parsing message:', error);
@@ -327,7 +344,9 @@ export default function App() {
     <SafeAreaView style={{
       flex: 1,
       position: 'relative',
+      backgroundColor: '#fff',
     }}>
+      <StatusBar barStyle="default" />
       {view === 'createPost' && (
         <CreatePost
           onClose={() => setView('webview')}
@@ -344,7 +363,10 @@ export default function App() {
         >
           <WebView
             ref={webViewRef}
+            enableApplePay
+            autoManageStatusBarEnabled
             source={{ uri: `${URL}${deepLinkUrl ? '?deeplink=' + deepLinkUrl : ''}` }}
+            // source={{ uri: `https://www.carevents.com/uk/get-tickets/event.php?event_id=WGlGNUhEWFE0cTZIWWJXT3RPaHN5dz09` }}
             onMessage={onMessage}
             onLoadProgress={({ nativeEvent }) => {
               // This function is called everytime your web view loads a page

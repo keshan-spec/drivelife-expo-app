@@ -236,6 +236,8 @@ export const addPost = async ({
     caption,
     location,
     taggedEntities = [],
+    association_id,
+    association_type,
 }) => {
     try {
         if (!user_id || !mediaList || mediaList.length === 0) {
@@ -250,6 +252,11 @@ export const addPost = async ({
         formData.append("caption", caption || "");
         formData.append("location", location || "");
         formData.append("media", JSON.stringify(media));
+
+        if (association_id && association_type) {
+            formData.append("association_id", association_id);
+            formData.append("association_type", association_type);
+        }
 
         const response = await fetch(`${API_URL}/wp-json/app/v1/create-post`, {
             cache: "no-cache",

@@ -10,6 +10,11 @@
       "image": "./assets/splash.png",
       "resizeMode": "contain"
     },
+    "androidStatusBar": {
+      "backgroundColor": "#b89855",
+      "barStyle": "default",
+      "hidden": false
+    },
     "assetBundlePatterns": [
       "assets/*"
     ],

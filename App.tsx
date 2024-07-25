@@ -49,7 +49,7 @@ export default function App() {
   const [webViewcanGoBack, setWebViewcanGoBack] = useState(false);
 
   const setNotifChannels = async () => {
-    await Notifications.setNotificationHandler({
+    Notifications.setNotificationHandler({
       handleNotification: async (notification) => {
         console.log('Notification received:', notification);
 
@@ -346,7 +346,10 @@ export default function App() {
       position: 'relative',
       backgroundColor: '#fff',
     }}>
-      <StatusBar barStyle="default" />
+      <StatusBar
+        barStyle="default"
+        hidden={false}
+      />
       {view === 'createPost' && (
         <CreatePost
           onClose={() => setView('webview')}

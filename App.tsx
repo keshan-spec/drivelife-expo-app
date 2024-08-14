@@ -268,7 +268,22 @@ export default function App() {
     const data = payload.nativeEvent.data;
 
     try {
+      if (data === 'exit_app') {
+        // Display a confirmation alert before closing the app
+        Alert.alert(
+          'Exit App',
+          'Are you sure you want to exit?',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Yes', onPress: () => BackHandler.exitApp() },
+          ],
+          { cancelable: false }
+        );
+        return;
+      }
+
       const message = JSON.parse(data) as WebMessage;
+      console.log('Message received:', message);
 
       switch (message.type) {
         case 'authData':
@@ -312,24 +327,37 @@ export default function App() {
     }
   };
 
+  // const handleBackPress = useCallback(() => {
+  //   try {
+  //     if (webViewRef.current) {
+  //       if (webViewcanGoBack) {
+  //         webViewRef.current.goBack(); // Attempt to go back within the WebView
+  //         return true; // Prevent default behavior (closing the app)
+  //       } else {
+  //         return false; // Default behavior (close the app)
+  //       }
+  //     } else {
+  //       setView('webview');
+  //       return true;
+  //     }
+  //   } catch (error) {
+  //     console.log(`Error going back:`, error);
+  //     return false; // Default behavior (close the app)
+  //   }
+  // }, [webViewcanGoBack, view]);
+
   const handleBackPress = useCallback(() => {
-    try {
-      if (webViewRef.current) {
-        if (webViewcanGoBack) {
-          webViewRef.current.goBack(); // Attempt to go back within the WebView
-          return true; // Prevent default behavior (closing the app)
-        } else {
-          return false; // Default behavior (close the app)
+    if (webViewRef.current) {
+      webViewRef.current.injectJavaScript(`
+        if (window.onAppBackKey) {
+          window.onAppBackKey();
         }
-      } else {
-        setView('webview');
-        return true;
-      }
-    } catch (error) {
-      console.log(`Error going back:`, error);
+      `);
+      return true; // Prevent default behavior (closing the app)
+    } else {
       return false; // Default behavior (close the app)
     }
-  }, [webViewcanGoBack, view]);
+  }, []);
 
   return (
     <SafeAreaView style={{

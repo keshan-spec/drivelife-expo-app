@@ -10,7 +10,7 @@ import * as Notifications from 'expo-notifications';
 import BackgroundService from 'react-native-background-actions';
 
 // https://stackoverflow.com/questions/54075629/reactnative-permission-always-return-never-ask-again
-import { associateDeviceWithUser, GetAllPermissions, setUserAsInactive } from './utils';
+import { associateDeviceWithUser, GetAllPermissions, maybeSetUserLocation, setUserAsInactive } from './utils';
 import CreatePost from "./CreatePost/CreatePostPage";
 import { addPost } from "./CreatePost/actions/create-post";
 import { CreatePostProps, WebMessage } from 'types';
@@ -204,20 +204,11 @@ export default function App() {
   // Set the external user id in OneSignal
   const setExternalId = useCallback(async () => {
     if (carcalSession) {
-      const response = await associateDeviceWithUser(carcalSession, playerId);
-      console.log(`Associate device with user response:`, response);
-      return;
-
-      OneSignal.setAppId(Constants.expoConfig?.extra?.onesignal.app_id);
-      OneSignal.setExternalUserId(`DL-${carcalSession}`, playerId, (results: any) => {
-        if (results.push && results.push.success) {
-          console.log('OneSignal external user id set');
-        }
-      });
+      await associateDeviceWithUser(carcalSession, playerId);
 
       if (location && location !== null) {
-        // const res = await maybeSetUserLocation(location, carcalSession);
         console.log(`Location status :`, location);
+        await maybeSetUserLocation(location, carcalSession);
       }
     }
   }, [carcalSession, playerId]);
@@ -231,7 +222,7 @@ export default function App() {
     try {
       await setNotifChannels();
 
-      setDeepLinkUrl(`https://phpstack-889362-4370795.cloudwaysapps.com/`);
+      setDeepLinkUrl(URL);
       setView('webview');
 
       await BackgroundService.start(() =>

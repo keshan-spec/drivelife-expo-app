@@ -77,9 +77,12 @@ export async function loginUserinWP(user_id) {
 
 export async function maybeSetUserLocation(coords, uid) {
     // send request to server to save token
-    let url = `${URL}/wp-json/expoapi/v1/set_user_location`;
+    let url = `${URL}/wp-json/app/v1/update-last-location`;
     let data = {
-        coords: coords,
+        coords: {
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+        },
         user_id: uid
     };
 

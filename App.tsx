@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { SafeAreaView, AppState, Alert, Linking, ScrollView, BackHandler, Platform, StatusBar, View, Text } from "react-native";
+import { SafeAreaView, AppState, Alert, Linking, ScrollView, BackHandler, Platform, StatusBar } from "react-native";
 import { WebView, WebViewMessageEvent } from 'react-native-webview';
 
 import 'expo-dev-client';
@@ -14,7 +14,6 @@ import { associateDeviceWithUser, GetAllPermissions, maybeSetUserLocation, setUs
 import CreatePost from "./CreatePost/CreatePostPage";
 import { addPost } from "./CreatePost/actions/create-post";
 import { CreatePostProps, WebMessage } from 'types';
-import ProgressNotification from './ProgressNotif';
 
 const URL = 'https://phpstack-889362-4370795.cloudwaysapps.com';
 const options = {

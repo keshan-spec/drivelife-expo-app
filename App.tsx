@@ -14,7 +14,6 @@ import { associateDeviceWithUser, GetAllPermissions, maybeSetUserLocation, setUs
 import CreatePost from "./CreatePost/CreatePostPage";
 import { addPost } from "./CreatePost/actions/create-post";
 import { CreatePostProps, WebMessage } from 'types';
-import { requestNotifications } from 'react-native-permissions';
 import ProgressNotification from './ProgressNotif';
 
 const URL = 'https://phpstack-889362-4370795.cloudwaysapps.com';
@@ -77,6 +76,50 @@ export default function App() {
     });
   };
 
+  const appPermissionsInit = async () => {
+    let res = await GetAllPermissions() as any;
+
+    if (Platform.OS === 'android') {
+      // Location
+      if (res?.["android.permission.ACCESS_FINE_LOCATION"] === "granted") {
+        setPermissionsLocation({ denied: false, granted: true });
+        getCurrentPosition();
+      } else {
+        setPermissionsLocation({ denied: true, granted: false });
+      }
+
+      // Notifications
+      if (res?.["android.permission.POST_NOTIFICATIONS"] === "granted") {
+        OneSignal.getDeviceState().then((deviceState) => {
+          if (deviceState && deviceState.userId) {
+            setPlayerId(deviceState.userId);
+          }
+        });
+      } else {
+        console.log('Notification permission denied');
+      }
+    } else if (Platform.OS === 'ios') {
+      // Location
+      if (res?.["ios.permission.LOCATION_WHEN_IN_USE"] === "granted" || res?.["ios.permission.LOCATION_ALWAYS"] === "granted") {
+        setPermissionsLocation({ denied: false, granted: true });
+        getCurrentPosition();
+      } else {
+        setPermissionsLocation({ denied: true, granted: false });
+      }
+
+      // Notifications
+      if (res?.["ios.permission.NOTIFICATIONS"] === "granted") {
+        OneSignal.getDeviceState().then((deviceState) => {
+          if (deviceState && deviceState.userId) {
+            setPlayerId(deviceState.userId);
+          }
+        });
+      } else {
+        console.log('Notification permission denied');
+      }
+    }
+  }
+
   useEffect(() => {
     // Handle user clicking on a notification and open the screen
     const handleNotificationClick = async (response: Notifications.NotificationResponse) => {
@@ -99,6 +142,8 @@ export default function App() {
 
   // OneSignal Initialization
   useEffect(() => {
+    setNotifChannels();
+
     OneSignal.setAppId(Constants.expoConfig?.extra?.onesignal.app_id);
     OneSignal.addSubscriptionObserver((event) => {
       // if event.to is true, the user is subscribed
@@ -113,53 +158,6 @@ export default function App() {
         });
       }
     });
-
-    // Get the user permissions for location and notifications
-    (async () => {
-      let res = await GetAllPermissions() as any;
-
-      if (Platform.OS === 'android') {
-        // Location
-        if (res?.["android.permission.ACCESS_FINE_LOCATION"] === "granted") {
-          setPermissionsLocation({ denied: false, granted: true });
-          getCurrentPosition();
-        } else {
-          setPermissionsLocation({ denied: true, granted: false });
-        }
-
-        // Notifications
-        if (res?.["android.permission.POST_NOTIFICATIONS"] === "granted") {
-          OneSignal.getDeviceState().then((deviceState) => {
-            if (deviceState && deviceState.userId) {
-              setPlayerId(deviceState.userId);
-            }
-          });
-        } else {
-          console.log('Notification permission denied');
-        }
-      } else if (Platform.OS === 'ios') {
-        // Location
-        if (res?.["ios.permission.LOCATION_WHEN_IN_USE"] === "granted" || res?.["ios.permission.LOCATION_ALWAYS"] === "granted") {
-          setPermissionsLocation({ denied: false, granted: true });
-          getCurrentPosition();
-        } else {
-          setPermissionsLocation({ denied: true, granted: false });
-        }
-
-        requestNotifications(['alert', 'sound', 'badge']).then(({ status, settings }) => {
-          // Notifications
-          if (status === "granted") {
-            OneSignal.getDeviceState().then((deviceState) => {
-              if (deviceState && deviceState.userId) {
-                setPlayerId(deviceState.userId);
-              }
-            });
-          } else {
-            console.log('Notification permission denied');
-          }
-        });
-      }
-    })();
 
     OneSignal.setNotificationWillShowInForegroundHandler((notificationReceivedEvent) => {
       let notification = notificationReceivedEvent.getNotification();
@@ -177,10 +175,6 @@ export default function App() {
         setDeepLinkUrl(`${URL}${data.url}`);
       }
     });
-
-    // OneSignal.setInAppMessageClickHandler((event) => {
-    //   console.log('OneSignal IAM clicked:', event);
-    // });
 
     return () => {
       OneSignal.clearHandlers();
@@ -233,7 +227,6 @@ export default function App() {
       await associateDeviceWithUser(carcalSession, playerId);
 
       if (location && location !== null) {
-        console.log(`Location status :`, location);
         await maybeSetUserLocation(location, carcalSession);
       }
     }
@@ -246,7 +239,6 @@ export default function App() {
     taggedEntities,
   }: CreatePostProps) => {
     try {
-      await setNotifChannels();
       setDeepLinkUrl(URL);
       setView('webview');
 
@@ -295,15 +287,16 @@ export default function App() {
     try {
       if (data === 'exit_app') {
         // Display a confirmation alert before closing the app
-        Alert.alert(
-          'Exit App',
-          'Are you sure you want to exit?',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Yes', onPress: () => BackHandler.exitApp() },
-          ],
-          { cancelable: false }
-        );
+        // Alert.alert(
+        //   'Exit App',
+        //   'Are you sure you want to exit?',
+        //   [
+        //     { text: 'Cancel', style: 'cancel' },
+        //     { text: 'Yes', onPress: () => BackHandler.exitApp() },
+        //   ],
+        //   { cancelable: false }
+        // );
+        BackHandler.exitApp();
         return;
       }
 
@@ -311,7 +304,10 @@ export default function App() {
 
       switch (message.type) {
         case 'authData':
-          setCarcalSession(message.user_id);
+          if (message.user_id) {
+            setCarcalSession(message.user_id);
+            await appPermissionsInit();
+          }
           break;
         case 'createPost':
           const isRunning = BackgroundService.isRunning();
@@ -352,25 +348,6 @@ export default function App() {
     }
   };
 
-  // const handleBackPress = useCallback(() => {
-  //   try {
-  //     if (webViewRef.current) {
-  //       if (webViewcanGoBack) {
-  //         webViewRef.current.goBack(); // Attempt to go back within the WebView
-  //         return true; // Prevent default behavior (closing the app)
-  //       } else {
-  //         return false; // Default behavior (close the app)
-  //       }
-  //     } else {
-  //       setView('webview');
-  //       return true;
-  //     }
-  //   } catch (error) {
-  //     console.log(`Error going back:`, error);
-  //     return false; // Default behavior (close the app)
-  //   }
-  // }, [webViewcanGoBack, view]);
-
   const handleBackPress = useCallback(() => {
     if (webViewRef.current) {
       webViewRef.current.injectJavaScript(`
@@ -384,6 +361,8 @@ export default function App() {
     }
   }, []);
 
+
+
   return (
     <SafeAreaView style={{
       flex: 1,
@@ -395,7 +374,10 @@ export default function App() {
         hidden={false}
       />
 
-      {/* <ProgressNotification progress={progress} /> */}
+      {/* {BackgroundService.isRunning() && (
+        <ProgressNotification />
+      )} */}
+
       {view === 'createPost' && (
         <CreatePost
           onClose={() => setView('webview')}
@@ -403,32 +385,37 @@ export default function App() {
         />
       )}
 
-      {view === 'webview' && (
-        <ScrollView
-          contentContainerStyle={{
-            flex: 1,
-            backgroundColor: '#fff',
-          }}
-        >
-          <WebView
-            ref={webViewRef}
-            mediaCapturePermissionGrantType='grant'
+      {/* {view === 'webview' && ( */}
+      <ScrollView
+        contentContainerStyle={{
+          flex: 1,
+          backgroundColor: '#fff',
 
-            allowsBackForwardNavigationGestures
-            javaScriptEnabled
-            autoManageStatusBarEnabled
-            allowsInlineMediaPlayback
-            source={{ uri: `${URL}${deepLinkUrl ? '?deeplink=' + deepLinkUrl : ''}` }}
-            // source={{ uri: `https://www.carevents.com/uk/get-tickets/event.php?event_id=WGlGNUhEWFE0cTZIWWJXT3RPaHN5dz09` }}
-            onMessage={onMessage}
-            onLoadProgress={({ nativeEvent }) => {
-              // This function is called everytime your web view loads a page
-              // and here we change the state of can go back
-              setWebViewcanGoBack(nativeEvent.canGoBack);
-            }}
-          />
-        </ScrollView>
-      )}
+        }}
+        style={{
+          display: view === 'webview' ? 'flex' : 'none',
+        }}
+      >
+        <WebView
+          ref={webViewRef}
+          mediaCapturePermissionGrantType='grant'
+          bounces={false}
+          contentMode='mobile'
+          allowsBackForwardNavigationGestures
+          javaScriptEnabled
+          autoManageStatusBarEnabled
+          allowsInlineMediaPlayback
+          source={{ uri: `${URL}${deepLinkUrl ? '?deeplink=' + deepLinkUrl : ''}` }}
+          // source={{ uri: `https://www.carevents.com/uk/get-tickets/event.php?event_id=WGlGNUhEWFE0cTZIWWJXT3RPaHN5dz09` }}
+          onMessage={onMessage}
+          onLoadProgress={({ nativeEvent }) => {
+            // This function is called everytime your web view loads a page
+            // and here we change the state of can go back
+            setWebViewcanGoBack(nativeEvent.canGoBack);
+          }}
+        />
+      </ScrollView>
+      {/* )} */}
     </SafeAreaView>
   );
 }

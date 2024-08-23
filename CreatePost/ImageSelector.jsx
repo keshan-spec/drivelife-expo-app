@@ -15,6 +15,7 @@ import { stat } from 'react-native-fs';
 import { checkCameraPermission, checkStoragePermission, showSettingsAlert } from '../permissions/camera';
 
 import * as FileSystem from 'expo-file-system';
+import { requestIOSMediaPermissions } from '../utils';
 
 const numColumns = 4;
 const screenWidth = Dimensions.get('window').width;
@@ -111,15 +112,21 @@ export async function checkAndRequestMediaLibraryPermissions() {
         }
         // iOS will also use MediaLibrary.requestPermissionsAsync()
         else if (Platform.OS === "ios") {
-            const { status } = await MediaLibrary.requestPermissionsAsync();
-            if (status !== 'granted') {
-                console.log('Media Library permission not granted on iOS');
-                return false; // Exit the function if permission is not granted
-            }
+            const permissions = await requestIOSMediaPermissions();
+
+            // console.log('permissions', permissions);
+
+            // if (permissions.some(permission => permission !== 'granted')) {
+            //     console.log('Media Library permission not granted on iOS');
+            //     return false; // Exit the function if permission is not granted
+            // }
+
+            return true; // Permission granted
         }
+
         return true; // Permission granted
     } catch (err) {
-        console.log('Error requesting Media Library permissions:', err);
+        console.log('Error requesting Media Library permissions:', err, Platform.OS);
         return false;
     }
 }
@@ -192,7 +199,6 @@ const ImageSelector = ({ navigation, onClose }) => {
             });
         }
     };
-
 
     const getPhotos = async (page) => {
         try {

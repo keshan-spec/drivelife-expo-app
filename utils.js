@@ -1,4 +1,6 @@
-import { PermissionsAndroid } from 'react-native';
+import {
+    PermissionsAndroid
+} from 'react-native';
 import Constants from 'expo-constants';
 
 export const URL = Constants.expoConfig.extra.headlessAPIUrl;
@@ -98,8 +100,16 @@ export async function maybeSetUserLocation(coords, uid) {
     return json;
 }
 
-import { Platform } from 'react-native';
-import { check, request, PERMISSIONS, RESULTS } from 'react-native-permissions';
+import {
+    Platform
+} from 'react-native';
+import {
+    check,
+    request,
+    PERMISSIONS,
+    RESULTS,
+    requestNotifications
+} from 'react-native-permissions';
 
 export async function GetAllPermissions() {
     try {
@@ -111,16 +121,18 @@ export async function GetAllPermissions() {
             ]);
             return userResponse;
         } else if (Platform.OS === "ios") {
+            const {
+                status
+            } = await requestNotifications(['alert', 'sound', 'badge', '']);
+
             const permissions = [
                 PERMISSIONS.IOS.LOCATION_WHEN_IN_USE,
                 PERMISSIONS.IOS.LOCATION_ALWAYS,
-                PERMISSIONS.IOS.CAMERA,
-                PERMISSIONS.IOS.MICROPHONE,
-                PERMISSIONS.IOS.PHOTO_LIBRARY,
-                PERMISSIONS.IOS.MEDIA_LIBRARY,
             ];
 
-            const results = {};
+            const results = {
+                'ios.permission.NOTIFICATIONS': status,
+            };
 
             for (let permission of permissions) {
                 const result = await request(permission);
@@ -133,6 +145,23 @@ export async function GetAllPermissions() {
         console.log(err);
     }
     return null;
+}
+
+export const requestIOSMediaPermissions = async () => {
+    const permissions = [
+        PERMISSIONS.IOS.CAMERA,
+        PERMISSIONS.IOS.PHOTO_LIBRARY,
+        PERMISSIONS.IOS.MEDIA_LIBRARY,
+    ];
+
+    const results = {};
+
+    for (let permission of permissions) {
+        const result = await request(permission);
+        results[permission] = result;
+    }
+
+    return results;
 }
 
 

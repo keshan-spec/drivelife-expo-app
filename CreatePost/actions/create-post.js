@@ -1,15 +1,25 @@
-
 import AWS from 'aws-sdk';
 import RNFS from 'react-native-fs';
 import uuid from 'react-native-uuid';
 import BackgroundService from 'react-native-background-actions';
-import { getImageMetaData, getVideoMetaData, Video } from 'react-native-compressor';
+import {
+    getImageMetaData,
+    getVideoMetaData,
+    Video
+} from 'react-native-compressor';
 import RNVideoHelper from 'react-native-video-helper';
 
-import { Buffer } from "buffer";
+import {
+    Buffer
+} from "buffer";
 import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
-import { Platform } from 'react-native';
+import {
+    Platform
+} from 'react-native';
+import {
+    setProgress
+} from './progress';
 
 
 const API_URL = Constants.expoConfig.extra.headlessAPIUrl;
@@ -31,7 +41,10 @@ const CHUNK_SIZE = 1024 * 1024 * 5; // 5MB
 // Utility function to handle conversion of ph:// URIs to accessible file paths
 const convertPHUriToFilePath = async (media, filename) => {
     try {
-        const { uri, type } = media;
+        const {
+            uri,
+            type
+        } = media;
 
         // Ensure this function is only necessary for iOS
         if (Platform.OS !== 'ios' || !uri.startsWith('ph://')) {
@@ -170,7 +183,12 @@ const compressMedia = async (media, type) => {
 
             // Image compression logic goes here...
 
-            const { ImageHeight, ImageWidth, size, extension } = await getImageMetaData(filePath);
+            const {
+                ImageHeight,
+                ImageWidth,
+                size,
+                extension
+            } = await getImageMetaData(filePath);
 
             return {
                 uri: filePath,
@@ -200,7 +218,12 @@ const compressMedia = async (media, type) => {
             });
 
             // Video compression logic goes here...
-            const { size, height, width, extension } = await getVideoMetaData(compressedPath);
+            const {
+                size,
+                height,
+                width,
+                extension
+            } = await getVideoMetaData(compressedPath);
 
             return {
                 uri: compressedPath,
@@ -223,7 +246,7 @@ const uploadFileInChunks = async (user_id, mediaList) => {
         let completeStatusPercent = 0;
 
         for (let i = 0; i < mediaList.length; i++) {
-            
+
             const type = mediaList[i].type.split('/')[0];
             const mime = mediaList[i].type;
             const currentFile = await compressMedia(mediaList[i], type);
@@ -254,7 +277,10 @@ const uploadFileInChunks = async (user_id, mediaList) => {
 
                 // Upload the chunk to S3
                 const eTag = await uploadPart(BUCKET_NAME, fileName, uploadId, partNumber, chunkData);
-                parts.push({ PartNumber: partNumber, ETag: eTag });
+                parts.push({
+                    PartNumber: partNumber,
+                    ETag: eTag
+                });
 
                 // Calculate and log progress
                 let percentage = Math.round((offset / fileSize) * 100);
@@ -277,7 +303,9 @@ const uploadFileInChunks = async (user_id, mediaList) => {
 
             // Complete the multipart upload
             const response = await completeMultipartUpload(BUCKET_NAME, fileName, uploadId, parts);
-            const { Key } = response;
+            const {
+                Key
+            } = response;
 
             uploadedData.push({
                 url: `https://d3gv6k8qu6wcqs.cloudfront.net/${Key}`,
@@ -382,7 +410,7 @@ export const addPost = async ({
     } catch (e) {
         await addNotification("Failed to create post", e.message || "Failed to create post");
         await BackgroundService.stop();
-        
+
         throw new Error(`Failed to create post: ${e.message}`);
     }
 };
@@ -399,7 +427,11 @@ export const addTagsForPost = async (user_id, postId, tags) => {
             headers: {
                 "Content-Type": "application/json",
             },
-            body: JSON.stringify({ user_id, post_id: postId, tags }),
+            body: JSON.stringify({
+                user_id,
+                post_id: postId,
+                tags
+            }),
         });
 
         const data = await response.json();
@@ -424,7 +456,11 @@ export const fetchTaggableEntites = async (user_id, search, tagged_entities, is_
             headers: {
                 "Content-Type": "application/json",
             },
-            body: JSON.stringify({ search, user_id, tagged_entities }),
+            body: JSON.stringify({
+                search,
+                user_id,
+                tagged_entities
+            }),
         });
 
         const data = await response.json();

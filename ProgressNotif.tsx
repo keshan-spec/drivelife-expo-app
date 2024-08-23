@@ -1,12 +1,24 @@
-import React from 'react';
+import { getProgress } from './CreatePost/actions/progress';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 
-const ProgressNotification = ({ progress }: { progress: number }) => {
+const ProgressNotification = () => {
+    const [progress, setProgress] = useState(getProgress());
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setProgress(getProgress());
+        }, 500); // Update every 500ms
+
+        return () => clearInterval(interval); // Cleanup on unmount
+    }, []);
+
+
     return (
         <View style={styles.container}>
             <View style={styles.progressContainer}>
                 <Text style={styles.text}>Uploading: {Math.round(progress * 100)}%</Text>
-                <ActivityIndicator size="large" color="#4caf50" />
+                <ActivityIndicator size="small" color="#4caf50" />
             </View>
         </View>
     );
@@ -15,15 +27,15 @@ const ProgressNotification = ({ progress }: { progress: number }) => {
 const styles = StyleSheet.create({
     container: {
         position: 'absolute',
-        top: 30,
+        top: 90,
         width: '95%',
         zIndex: 9999,
-        height: 100,
+        height: 40,
         display: 'flex',
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
-        padding: 20,
+        paddingHorizontal: 20,
         backgroundColor: '#fff',
         borderRadius: 8,
         margin: 10,
@@ -43,8 +55,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     text: {
-        marginBottom: 10,
-        fontSize: 16,
+        fontSize: 14,
         textAlign: 'center',
     },
 });

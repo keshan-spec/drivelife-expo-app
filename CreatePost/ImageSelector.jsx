@@ -14,6 +14,8 @@ import CustomVideo from './Components/Video';
 import { stat } from 'react-native-fs';
 import { checkCameraPermission, checkStoragePermission, showSettingsAlert } from '../permissions/camera';
 
+import * as FileSystem from 'expo-file-system';
+
 const numColumns = 4;
 const screenWidth = Dimensions.get('window').width;
 
@@ -97,6 +99,31 @@ const PhotoGrid = ({ photos, loadMorePhotos, onSelectImage, selectedPhotos, isMu
     );
 };
 
+export async function checkAndRequestMediaLibraryPermissions() {
+    try {
+        // Check if the platform is Android
+        if (Platform.OS === "android") {
+            const { status } = await MediaLibrary.requestPermissionsAsync();
+            if (status !== 'granted') {
+                console.log('Media Library permission not granted on Android');
+                return false; // Exit the function if permission is not granted
+            }
+        }
+        // iOS will also use MediaLibrary.requestPermissionsAsync()
+        else if (Platform.OS === "ios") {
+            const { status } = await MediaLibrary.requestPermissionsAsync();
+            if (status !== 'granted') {
+                console.log('Media Library permission not granted on iOS');
+                return false; // Exit the function if permission is not granted
+            }
+        }
+        return true; // Permission granted
+    } catch (err) {
+        console.log('Error requesting Media Library permissions:', err);
+        return false;
+    }
+}
+
 const ImageSelector = ({ navigation, onClose }) => {
     const { selectedPhotos, setSelectedPhotos, setStep } = usePostProvider();
     const [photos, setPhotos] = useState([]);
@@ -111,11 +138,15 @@ const ImageSelector = ({ navigation, onClose }) => {
         }
     }, [selectedPhotos]);
 
-    const getPhotos = async (page) => {
+    const getPhotosV1 = async (page) => {
         try {
-            if (Platform.OS === "android" && !(await MediaLibrary.requestPermissionsAsync())) {
-                return;
+            const hasPermission = await checkAndRequestMediaLibraryPermissions();
+            if (!hasPermission) {
+                return
             }
+            // if (Platform.OS === "android" && !(await MediaLibrary.requestPermissionsAsync())) {
+            //     return;
+            // }
 
             const gallery = await MediaLibrary.getAssetsAsync({
                 first: 20 * page,
@@ -152,6 +183,68 @@ const ImageSelector = ({ navigation, onClose }) => {
 
             if (selectedPhotos.length === 0 && media.length > 0) {
                 setSelectedPhotos([media[0]]);
+            }
+        } catch (error) {
+            console.log('Error getting photos', error);
+            showSettingsAlert({
+                title: 'Storage Permission',
+                message: 'Storage access is required to select photos. Please enable it in the settings.',
+            });
+        }
+    };
+
+
+    const getPhotos = async (page) => {
+        try {
+            const hasPermission = await checkAndRequestMediaLibraryPermissions();
+            if (!hasPermission) {
+                return;
+            }
+
+            const gallery = await MediaLibrary.getAssetsAsync({
+                first: 20 * page,
+                mediaType: ['video', 'photo'],
+                sortBy: ['creationTime'],
+            });
+
+            const { assets, hasNextPage } = gallery;
+
+            if (!hasNextPage) {
+                setHasNextPage(false);
+            }
+
+            const images = await Promise.all(
+                assets.map(async (asset) => {
+                    // Check if the file exists before accessing it
+                    const fileExists = await FileSystem.getInfoAsync(asset.uri);
+                    if (!fileExists.exists) {
+                        console.log(`File does not exist: ${asset.uri}`);
+                        return null;
+                    }
+
+                    let { size } = await FileSystem.getInfoAsync(asset.uri, { size: true });
+
+                    const mimeType = asset.filename.split('.').pop();
+                    const type = asset.mediaType === 'photo' ? 'image' : 'video';
+
+                    return {
+                        uri: asset.uri,
+                        fileName: asset.filename,
+                        fileSize: size,
+                        type: `${type}/${mimeType}`,
+                        width: asset.width,
+                        height: asset.height,
+                        id: asset.id,
+                    };
+                })
+            );
+
+            const filteredImages = images.filter((image) => image !== null);
+
+            setPhotos(filteredImages);
+
+            if (selectedPhotos.length === 0 && filteredImages.length > 0) {
+                setSelectedPhotos([filteredImages[0]]);
             }
         } catch (error) {
             console.log('Error getting photos', error);

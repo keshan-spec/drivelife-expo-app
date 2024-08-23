@@ -3,7 +3,7 @@
     "name": "DriveLife",
     "slug": "carcal-v1",
     "scheme": "carcalendar",
-    "version": "1.0.0",
+    "version": "3.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "splash": {
@@ -21,12 +21,20 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.app.carcalendar",
+      "buildNumber": "5",
       "infoPlist": {
-        "NSCameraUsageDescription": "We needs camera permissions to allow you to upload profile photos.",
-        "NSPhotoLibraryAddUsageDescription": "We needs photo library permissions to allow you to upload profile images.",
-        "NSPhotoLibraryUsageDescription": "We needs photo library permissions to allow you to upload profile images.",
-        "NSMicrophoneUsageDescription": "We needs microphone permissions to allow you to record audio.",
-        "NSLocationWhenInUseUsageDescription": "We needs location permissions to allow you to use the app."
+        "NSCameraUsageDescription": "We need camera permissions to allow you to upload profile photos.",
+        "NSMicrophoneUsageDescription": "We need microphone permissions to allow you to record audio.",
+        "NSLocationWhenInUseUsageDescription": "We need location permissions to allow you to use the app.",
+        "NSLocationAlwaysUsageDescription": "We need location permissions to track your location in the background.",
+        "NSPhotoLibraryUsageDescription": "We need photo library permissions to access your images and videos.",
+        "NSPhotoLibraryAddUsageDescription": "We need photo library permissions to save images and videos.",
+        "NSMotionUsageDescription": "We need motion permissions to detect device movement.",
+        "NSBluetoothPeripheralUsageDescription": "We need Bluetooth permissions to connect to devices.",
+        "NSUserTrackingUsageDescription": "We need tracking permissions for targeted advertising.",
+        "NSFileProviderUsageDescription": "We need file provider permissions to manage files on your device.",
+        "NSAppleMusicUsageDescription": "We need access to your media to post images",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "We need location permissions to track your location in the background."
       },
       "icon": "./assets/ios/app_icon.png"
     },

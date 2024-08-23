@@ -98,6 +98,9 @@ export async function maybeSetUserLocation(coords, uid) {
     return json;
 }
 
+import { Platform } from 'react-native';
+import { check, request, PERMISSIONS, RESULTS } from 'react-native-permissions';
+
 export async function GetAllPermissions() {
     try {
         if (Platform.OS === "android") {
@@ -108,14 +111,49 @@ export async function GetAllPermissions() {
             ]);
             return userResponse;
         } else if (Platform.OS === "ios") {
-            // ios permissions
-            return null;
+            const permissions = [
+                PERMISSIONS.IOS.LOCATION_WHEN_IN_USE,
+                PERMISSIONS.IOS.LOCATION_ALWAYS,
+                PERMISSIONS.IOS.CAMERA,
+                PERMISSIONS.IOS.MICROPHONE,
+                PERMISSIONS.IOS.PHOTO_LIBRARY,
+                PERMISSIONS.IOS.MEDIA_LIBRARY,
+            ];
+
+            const results = {};
+
+            for (let permission of permissions) {
+                const result = await request(permission);
+                results[permission] = result;
+            }
+
+            return results;
         }
     } catch (err) {
         console.log(err);
     }
     return null;
 }
+
+
+// export async function GetAllPermissions() {
+//     try {
+//         if (Platform.OS === "android") {
+//             const userResponse = await PermissionsAndroid.requestMultiple([
+//                 PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+//                 PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION,
+//                 PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+//             ]);
+//             return userResponse;
+//         } else if (Platform.OS === "ios") {
+//             // ios permissions
+//             return null;
+//         }
+//     } catch (err) {
+//         console.log(err);
+//     }
+//     return null;
+// }
 
 export const associateDeviceWithUser = async (uid, token) => {
     // send request to server to save token

@@ -4,7 +4,7 @@
   "scripts": {
     "start": "expo start --dev-client",
     "android": "npx expo run:android",
-    "ios": "npx expo run:ios",
+    "ios": "npx expo run:ios --device",
     "web": "expo start --web",
     "build:android": "rm -rf android && eas build --platform android --profile preview"
   },

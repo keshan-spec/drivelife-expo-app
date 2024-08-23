@@ -3,16 +3,18 @@ import AWS from 'aws-sdk';
 import RNFS from 'react-native-fs';
 import uuid from 'react-native-uuid';
 import BackgroundService from 'react-native-background-actions';
-import { getImageMetaData, getVideoMetaData } from 'react-native-compressor';
+import { getImageMetaData, getVideoMetaData, Video } from 'react-native-compressor';
 import RNVideoHelper from 'react-native-video-helper';
 
 import { Buffer } from "buffer";
 import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
+import { Platform } from 'react-native';
+
 
 const API_URL = Constants.expoConfig.extra.headlessAPIUrl;
 const BUCKET_NAME = Constants.expoConfig.extra.awsBucketName;
-const MIN_COMPRESSION_SIZE = 1024 * 1024 * 20; // 20MB
+const MIN_COMPRESSION_SIZE = 1024 * 1024 * 10; // 20MB
 
 AWS.config.update({
     region: Constants.expoConfig.extra.awsRegion,
@@ -24,6 +26,40 @@ AWS.config.update({
 
 const s3 = new AWS.S3();
 const CHUNK_SIZE = 1024 * 1024 * 5; // 5MB
+
+
+// Utility function to handle conversion of ph:// URIs to accessible file paths
+const convertPHUriToFilePath = async (media, filename) => {
+    try {
+        const { uri, type } = media;
+
+        // Ensure this function is only necessary for iOS
+        if (Platform.OS !== 'ios' || !uri.startsWith('ph://')) {
+            return uri; // If not on iOS or no ph:// URI, return the original URI
+        }
+
+        // Determine the appropriate file extension based on media type
+        let extension = '';
+        if (type.startsWith('image/')) {
+            extension = 'jpg';
+        } else if (type.startsWith('video/')) {
+            extension = 'mp4';
+        } else {
+            throw new Error('Unsupported media type');
+        }
+
+        // Generate a temporary file path
+        const tempFilePath = `${RNFS.TemporaryDirectoryPath}/${filename}.${extension}`;
+
+        // Copy the asset to the temporary file path
+        await RNFS.copyAssetsFileIOS(uri, tempFilePath, 0, 0);
+
+        return tempFilePath; // Return the local file path
+    } catch (error) {
+        console.error('Error converting ph:// URI:', error);
+        throw error;
+    }
+};
 
 const initiateMultipartUpload = async (fileName, bucketName) => {
     try {
@@ -71,55 +107,113 @@ const completeMultipartUpload = async (bucketName, fileName, uploadId, parts) =>
     return response;
 };
 
+// const compressMedia = async (media, type) => {
+//     if (type === 'image') {
+//         // const compressedImage = await Image.compress(media.uri, {
+//         //     quality: 1,
+//         // });
+//         console.log(media.uri);
+
+//         const {
+//             ImageHeight,
+//             ImageWidth,
+//             size,
+//             extension
+//         } = await getImageMetaData(media.uri);
+
+//         return {
+//             uri: media.uri,
+//             height: ImageHeight,
+//             width: ImageWidth,
+//             fileSize: size,
+//             filename: `${uuid.v4()}.${extension}`,
+//         };
+//     } else if (type === 'video') {
+//         // check if the video is over 10MB
+//         if (media.fileSize < MIN_COMPRESSION_SIZE) {
+//             return {
+//                 ...media,
+//                 filename: `${uuid.v4()}.mp4`,
+//             };
+//         }
+
+//         const compressedVideo = await RNVideoHelper.compress(media.uri, {
+//             quality: 'high',
+//         });
+
+//         const {
+//             size,
+//             height,
+//             width,
+//             extension
+//         } = await getVideoMetaData(compressedVideo);
+
+//         return {
+//             uri: compressedVideo,
+//             height,
+//             width,
+//             fileSize: size,
+//             filename: `${uuid.v4()}.${extension}`
+//         };
+//     }
+
+//     return null;
+// };
 const compressMedia = async (media, type) => {
-    if (type === 'image') {
-        // const compressedImage = await Image.compress(media.uri, {
-        //     quality: 1,
-        // });
+    try {
+        // Convert ph:// URI to local file path
+        const fileName = uuid.v4();
+        const filePath = await convertPHUriToFilePath(media, fileName);
 
-        const {
-            ImageHeight,
-            ImageWidth,
-            size,
-            extension
-        } = await getImageMetaData(media.uri);
+        if (type === 'image') {
+            console.log(`Compressing image: ${filePath}`);
 
-        return {
-            uri: media.uri,
-            height: ImageHeight,
-            width: ImageWidth,
-            fileSize: size,
-            filename: `${uuid.v4()}.${extension}`,
-        };
-    } else if (type === 'video') {
-        // check if the video is over 10MB
-        if (media.fileSize < MIN_COMPRESSION_SIZE) {
+            // Image compression logic goes here...
+
+            const { ImageHeight, ImageWidth, size, extension } = await getImageMetaData(filePath);
+
             return {
-                ...media,
-                filename: `${uuid.v4()}.mp4`,
+                uri: filePath,
+                height: ImageHeight,
+                width: ImageWidth,
+                fileSize: size,
+                filename: `${uuid.v4()}.${extension}`,
+            };
+        } else if (type === 'video') {
+            // check if the video is over 10MB
+            // if (media.fileSize < MIN_COMPRESSION_SIZE) {
+            //     return {
+            //         ...media,
+            //         uri: filePath,
+            //         filename: `${fileName}.mp4`,
+            //     }
+            // }
+
+            console.log(`Compressing video: ${filePath}`);
+
+            // const compressedVideo = await RNVideoHelper.compress(filePath, {
+            //     quality: 'high',
+            // });
+
+            const compressedPath = await Video.compress(media.uri, {
+                compressionMethod: 'auto', // Can also be 'manual'
+            });
+
+            // Video compression logic goes here...
+            const { size, height, width, extension } = await getVideoMetaData(compressedPath);
+
+            return {
+                uri: compressedPath,
+                height,
+                width,
+                fileSize: size,
+                filename: `${fileName}.${extension}`,
             };
         }
-
-        const compressedVideo = await RNVideoHelper.compress(media.uri, {
-            quality: 'high',
-        });
-
-        const {
-            size,
-            height,
-            width,
-            extension
-        } = await getVideoMetaData(compressedVideo);
-
-        return {
-            uri: compressedVideo,
-            height,
-            width,
-            fileSize: size,
-            filename: `${uuid.v4()}.${extension}`
-        };
+    } catch (error) {
+        console.error('Error compressing media:', error);
+        throw error;
     }
-
     return null;
 };
 
@@ -129,6 +223,7 @@ const uploadFileInChunks = async (user_id, mediaList) => {
         let completeStatusPercent = 0;
 
         for (let i = 0; i < mediaList.length; i++) {
+            
             const type = mediaList[i].type.split('/')[0];
             const mime = mediaList[i].type;
             const currentFile = await compressMedia(mediaList[i], type);
@@ -204,6 +299,8 @@ const uploadFileInChunks = async (user_id, mediaList) => {
             });
 
             console.log(`File ${i + 1}/${mediaList.length} upload complete`);
+            // Delete the temporary file after successful upload
+            await RNFS.unlink(filePath);
         }
 
         await BackgroundService.updateNotification({
@@ -241,6 +338,7 @@ export const addPost = async ({
 }) => {
     try {
         if (!user_id || !mediaList || mediaList.length === 0) {
+            console.log("Error, missing data")
             await BackgroundService.stop();
             throw new Error("Invalid data");
         }
@@ -283,6 +381,8 @@ export const addPost = async ({
         return data;
     } catch (e) {
         await addNotification("Failed to create post", e.message || "Failed to create post");
+        await BackgroundService.stop();
+        
         throw new Error(`Failed to create post: ${e.message}`);
     }
 };

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { SafeAreaView, AppState, Alert, Linking, ScrollView, BackHandler, Platform, StatusBar } from "react-native";
+import { SafeAreaView, AppState, Alert, Linking, ScrollView, BackHandler, Platform, StatusBar, View, Text } from "react-native";
 import { WebView, WebViewMessageEvent } from 'react-native-webview';
 
 import 'expo-dev-client';
@@ -14,6 +14,8 @@ import { associateDeviceWithUser, GetAllPermissions, maybeSetUserLocation, setUs
 import CreatePost from "./CreatePost/CreatePostPage";
 import { addPost } from "./CreatePost/actions/create-post";
 import { CreatePostProps, WebMessage } from 'types';
+import { requestNotifications } from 'react-native-permissions';
+import ProgressNotification from './ProgressNotif';
 
 const URL = 'https://phpstack-889362-4370795.cloudwaysapps.com';
 const options = {
@@ -76,13 +78,14 @@ export default function App() {
   };
 
   useEffect(() => {
-
     // Handle user clicking on a notification and open the screen
     const handleNotificationClick = async (response: Notifications.NotificationResponse) => {
       const data = response.notification.request.content.data;
 
+      console.log('Notification clicked:', data);
+
       if (data && data.post_id) {
-        setDeepLinkUrl(`${URL}/posts/${data.post_id}`);
+        setDeepLinkUrl(`${URL}/post-view/${data.post_id}`);
       }
     };
 
@@ -113,14 +116,16 @@ export default function App() {
 
     // Get the user permissions for location and notifications
     (async () => {
-      let res = await GetAllPermissions();
+      let res = await GetAllPermissions() as any;
 
       if (Platform.OS === 'android') {
         // Location
         if (res?.["android.permission.ACCESS_FINE_LOCATION"] === "granted") {
           setPermissionsLocation({ denied: false, granted: true });
           getCurrentPosition();
-        } else setPermissionsLocation({ denied: true, granted: false });
+        } else {
+          setPermissionsLocation({ denied: true, granted: false });
+        }
 
         // Notifications
         if (res?.["android.permission.POST_NOTIFICATIONS"] === "granted") {
@@ -132,6 +137,27 @@ export default function App() {
         } else {
           console.log('Notification permission denied');
         }
+      } else if (Platform.OS === 'ios') {
+        // Location
+        if (res?.["ios.permission.LOCATION_WHEN_IN_USE"] === "granted" || res?.["ios.permission.LOCATION_ALWAYS"] === "granted") {
+          setPermissionsLocation({ denied: false, granted: true });
+          getCurrentPosition();
+        } else {
+          setPermissionsLocation({ denied: true, granted: false });
+        }
+
+        requestNotifications(['alert', 'sound', 'badge']).then(({ status, settings }) => {
+          // Notifications
+          if (status === "granted") {
+            OneSignal.getDeviceState().then((deviceState) => {
+              if (deviceState && deviceState.userId) {
+                setPlayerId(deviceState.userId);
+              }
+            });
+          } else {
+            console.log('Notification permission denied');
+          }
+        });
       }
     })();
 
@@ -221,7 +247,6 @@ export default function App() {
   }: CreatePostProps) => {
     try {
       await setNotifChannels();
-
       setDeepLinkUrl(URL);
       setView('webview');
 
@@ -283,7 +308,6 @@ export default function App() {
       }
 
       const message = JSON.parse(data) as WebMessage;
-      console.log('Message received:', message);
 
       switch (message.type) {
         case 'authData':
@@ -293,9 +317,10 @@ export default function App() {
           const isRunning = BackgroundService.isRunning();
 
           if (isRunning) {
-            Alert.alert('CarCalendar', 'Please wait for the current post to finish uploading', [
+            Alert.alert('DriveLife', 'Please wait for the current post to finish uploading', [
               { text: 'OK' }
             ]);
+            BackgroundService.stop()
             return;
           }
 
@@ -369,6 +394,8 @@ export default function App() {
         barStyle="default"
         hidden={false}
       />
+
+      {/* <ProgressNotification progress={progress} /> */}
       {view === 'createPost' && (
         <CreatePost
           onClose={() => setView('webview')}
@@ -385,8 +412,12 @@ export default function App() {
         >
           <WebView
             ref={webViewRef}
-            enableApplePay
+            mediaCapturePermissionGrantType='grant'
+
+            allowsBackForwardNavigationGestures
+            javaScriptEnabled
             autoManageStatusBarEnabled
+            allowsInlineMediaPlayback
             source={{ uri: `${URL}${deepLinkUrl ? '?deeplink=' + deepLinkUrl : ''}` }}
             // source={{ uri: `https://www.carevents.com/uk/get-tickets/event.php?event_id=WGlGNUhEWFE0cTZIWWJXT3RPaHN5dz09` }}
             onMessage={onMessage}

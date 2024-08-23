@@ -169,6 +169,7 @@ export default function App() {
     });
 
     OneSignal.setNotificationOpenedHandler((notification) => {
+
       const data = notification.notification.additionalData as { url?: string; };
       if (data && data.url) {
         setDeepLinkUrl(`${URL}${data.url}`);
@@ -222,8 +223,9 @@ export default function App() {
 
   // Set the external user id in OneSignal
   const setExternalId = useCallback(async () => {
-    if (carcalSession) {
-      await associateDeviceWithUser(carcalSession, playerId);
+    if (carcalSession && playerId) {
+      const response = await associateDeviceWithUser(carcalSession, playerId);
+      console.log('response', response);
 
       if (location && location !== null) {
         await maybeSetUserLocation(location, carcalSession);
@@ -359,8 +361,6 @@ export default function App() {
       return false; // Default behavior (close the app)
     }
   }, []);
-
-
 
   return (
     <SafeAreaView style={{

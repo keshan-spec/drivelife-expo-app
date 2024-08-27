@@ -11,7 +11,7 @@ module.exports = ({ config }) => {
             awsBucketName: process.env.AWS_BUCKET_NAME,
             awsAccessKeyId: process.env.AWS_ACCESS_KEY_ID,
             awsSecretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-            headlessAPIUrl: process.env.HEADLESS_API_URL || 'https://wordpress-889362-4267074.cloudwaysapps.com/uk',
+            headlessAPIUrl: process.env.HEADLESS_API_URL || 'https://www.carevents.com/uk',
         }
     };
 };

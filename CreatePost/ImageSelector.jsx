@@ -119,7 +119,7 @@ const ImageSelector = ({ navigation, onClose }) => {
 
             const gallery = await MediaLibrary.getAssetsAsync({
                 first: 20 * page,
-                mediaType: ['video', 'photo'],
+                mediaType: ['photo'],
                 sortBy: ['creationTime'],
             });
 
@@ -214,15 +214,13 @@ const ImageSelector = ({ navigation, onClose }) => {
     };
 
     const openImagePicker = () => {
-        const options = {
+        launchImageLibrary({
             title: 'Select Images',
-            mediaType: 'mixed',
+            mediaType: 'photo',
             presentationStyle: 'formSheet',
             selectionLimit: isMultiSelect ? 5 : 1,
             includeExtra: true,
-        };
-
-        launchImageLibrary(options, (response) => {
+        }, (response) => {
             if (response.didCancel) {
                 console.log('User cancelled image picker');
             } else if (response.error) {

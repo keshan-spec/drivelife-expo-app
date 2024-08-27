@@ -57,7 +57,11 @@
           "data": [
             {
               "scheme": "https",
-              "host": "phpstack-889362-4370795.cloudwaysapps.com"
+              "host": "app.mydrivelife.com"
+            },
+            {
+              "scheme": "https",
+              "host": "mydrivelife.com"
             }
           ],
           "category": [

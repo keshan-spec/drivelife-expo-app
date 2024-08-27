@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { SafeAreaView, AppState, Alert, Linking, ScrollView, BackHandler, Platform, StatusBar } from "react-native";
+import { SafeAreaView, AppState, Alert, Linking, BackHandler, Platform, StatusBar, View } from "react-native";
 import { WebView, WebViewMessageEvent } from 'react-native-webview';
 
 import 'expo-dev-client';
@@ -15,7 +15,7 @@ import CreatePost from "./CreatePost/CreatePostPage";
 import { addPost } from "./CreatePost/actions/create-post";
 import { CreatePostProps, WebMessage } from 'types';
 
-const URL = 'https://phpstack-889362-4370795.cloudwaysapps.com';
+const URL = 'https://app.mydrivelife.com';
 const options = {
   taskName: 'PostUpload',
   taskTitle: 'Post Upload',
@@ -75,6 +75,29 @@ export default function App() {
     });
   };
 
+  const getAppPermissions = async () => {
+    let res = await GetAllPermissions();
+
+    if (Platform.OS === 'android') {
+      // Location
+      if (res?.["android.permission.ACCESS_FINE_LOCATION"] === "granted") {
+        setPermissionsLocation({ denied: false, granted: true });
+        getCurrentPosition();
+      } else setPermissionsLocation({ denied: true, granted: false });
+
+      // Notifications
+      if (res?.["android.permission.POST_NOTIFICATIONS"] === "granted") {
+        OneSignal.getDeviceState().then((deviceState) => {
+          if (deviceState && deviceState.userId) {
+            setPlayerId(deviceState.userId);
+          }
+        });
+      } else {
+        console.log('Notification permission denied');
+      }
+    }
+  };
+
   useEffect(() => {
 
     // Handle user clicking on a notification and open the screen
@@ -82,7 +105,7 @@ export default function App() {
       const data = response.notification.request.content.data;
 
       if (data && data.post_id) {
-        setDeepLinkUrl(`${URL}/posts/${data.post_id}`);
+        setDeepLinkUrl(`${URL}/post-view/${data.post_id}`);
       }
     };
 
@@ -110,30 +133,6 @@ export default function App() {
         });
       }
     });
-
-    // Get the user permissions for location and notifications
-    (async () => {
-      let res = await GetAllPermissions();
-
-      if (Platform.OS === 'android') {
-        // Location
-        if (res?.["android.permission.ACCESS_FINE_LOCATION"] === "granted") {
-          setPermissionsLocation({ denied: false, granted: true });
-          getCurrentPosition();
-        } else setPermissionsLocation({ denied: true, granted: false });
-
-        // Notifications
-        if (res?.["android.permission.POST_NOTIFICATIONS"] === "granted") {
-          OneSignal.getDeviceState().then((deviceState) => {
-            if (deviceState && deviceState.userId) {
-              setPlayerId(deviceState.userId);
-            }
-          });
-        } else {
-          console.log('Notification permission denied');
-        }
-      }
-    })();
 
     OneSignal.setNotificationWillShowInForegroundHandler((notificationReceivedEvent) => {
       let notification = notificationReceivedEvent.getNotification();
@@ -203,7 +202,7 @@ export default function App() {
 
   // Set the external user id in OneSignal
   const setExternalId = useCallback(async () => {
-    if (carcalSession) {
+    if (carcalSession && playerId) {
       await associateDeviceWithUser(carcalSession, playerId);
 
       if (location && location !== null) {
@@ -288,6 +287,7 @@ export default function App() {
       switch (message.type) {
         case 'authData':
           setCarcalSession(message.user_id);
+          await getAppPermissions();
           break;
         case 'createPost':
           const isRunning = BackgroundService.isRunning();
@@ -369,6 +369,7 @@ export default function App() {
         barStyle="default"
         hidden={false}
       />
+
       {view === 'createPost' && (
         <CreatePost
           onClose={() => setView('webview')}
@@ -376,28 +377,28 @@ export default function App() {
         />
       )}
 
-      {view === 'webview' && (
-        <ScrollView
-          contentContainerStyle={{
-            flex: 1,
-            backgroundColor: '#fff',
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: '#fff',
+          display: view === 'webview' ? 'flex' : 'none',
+        }}
+      >
+        <WebView
+          ref={webViewRef}
+          overScrollMode='never'
+          enableApplePay
+          autoManageStatusBarEnabled
+          source={{ uri: `${URL}${deepLinkUrl ? '?deeplink=' + deepLinkUrl : ''}` }}
+          // source={{ uri: `https://www.carevents.com/uk/get-tickets/event.php?event_id=WGlGNUhEWFE0cTZIWWJXT3RPaHN5dz09` }}
+          onMessage={onMessage}
+          onLoadProgress={({ nativeEvent }) => {
+            // This function is called everytime your web view loads a page
+            // and here we change the state of can go back
+            setWebViewcanGoBack(nativeEvent.canGoBack);
           }}
-        >
-          <WebView
-            ref={webViewRef}
-            enableApplePay
-            autoManageStatusBarEnabled
-            source={{ uri: `${URL}${deepLinkUrl ? '?deeplink=' + deepLinkUrl : ''}` }}
-            // source={{ uri: `https://www.carevents.com/uk/get-tickets/event.php?event_id=WGlGNUhEWFE0cTZIWWJXT3RPaHN5dz09` }}
-            onMessage={onMessage}
-            onLoadProgress={({ nativeEvent }) => {
-              // This function is called everytime your web view loads a page
-              // and here we change the state of can go back
-              setWebViewcanGoBack(nativeEvent.canGoBack);
-            }}
-          />
-        </ScrollView>
-      )}
+        />
+      </View>
     </SafeAreaView>
   );
 }

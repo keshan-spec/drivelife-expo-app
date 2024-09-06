@@ -1,10 +1,12 @@
-import { View, Text, Image, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, TouchableWithoutFeedback, FlatList, Dimensions, ActivityIndicator } from 'react-native';
+import { View, Text, Image, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, TouchableWithoutFeedback, FlatList, Dimensions, ActivityIndicator, KeyboardAvoidingView } from 'react-native';
 import { usePostProvider } from './ContextProvider';
 
 import { Ionicons } from '@expo/vector-icons';
 import Collapsible from './Collapsible';
 import { useCallback, useMemo, useState } from 'react';
 import EditImage from './Components/EditImage';
+import { KeyboardAccessoryView } from 'react-native-keyboard-accessory'
+
 
 const SharePost = ({ navigation, onComplete }) => {
     const { selectedPhotos, setStep, taggedEntities, updateSelectedImage } = usePostProvider();
@@ -116,85 +118,93 @@ const SharePost = ({ navigation, onComplete }) => {
 
     return (
         <SafeAreaView style={styles.container}>
-            <ScrollView contentContainerStyle={styles.scrollView}>
-                <View style={styles.header}>
-                    <TouchableOpacity onPress={() => {
-                        setStep(0);
-                        navigation.goBack();
-                    }}>
-                        <View style={{
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                        }}>
-                            <Ionicons name="chevron-back" size={20} color="black" />
-                            <Text style={[styles.headerText, styles.poppinsFont]}>
-                                {` `} Back
-                            </Text>
+            <KeyboardAccessoryView alwaysVisible={true} hideBorder={true} androidAdjustResize>
+                <ScrollView contentContainerStyle={styles.scrollView}>
+                    <KeyboardAvoidingView
+                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    >
+                        <View style={styles.header}>
+                            <TouchableOpacity onPress={() => {
+                                setStep(0);
+                                navigation.goBack();
+                            }}>
+                                <View style={{
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                }}>
+                                    <Ionicons name="chevron-back" size={20} color="black" />
+                                    <Text style={[styles.headerText, styles.poppinsFont]}>
+                                        {` `} Back
+                                    </Text>
+                                </View>
+                            </TouchableOpacity>
                         </View>
-                    </TouchableOpacity>
-                </View>
 
-                <View style={{
-                    flex: 1,
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    // backgroundColor: '#151617',
-                    height: 350,
-                    padding: 10,
-                }}>
-                    {renderSelectedPhotos()}
-                </View>
+                        <View style={{
+                            flex: 1,
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            // backgroundColor: '#151617',
+                            height: 350,
+                            padding: 10,
+                        }}>
+                            {renderSelectedPhotos()}
+                        </View>
 
-                <View style={styles.textAreaContainer} >
-                    <TextInput
-                        multiline={true}
-                        defaultValue={caption}
-                        onChangeText={setCaption}
-                        numberOfLines={5}
-                        style={styles.captionInput}
-                        placeholder="Write a caption..."
-                        placeholderTextColor="#aaa"
-                    />
-                </View>
+                        <View style={styles.textAreaContainer} >
+                            <TextInput
+                                multiline={true}
+                                defaultValue={caption}
+                                onChangeText={setCaption}
+                                numberOfLines={5}
+                                style={styles.captionInput}
+                                placeholder="Write a caption..."
+                                placeholderTextColor="#aaa"
+                            />
+                        </View>
+                    </KeyboardAvoidingView>
+                    <Collapsible />
+                </ScrollView>
 
-                <Collapsible />
-            </ScrollView>
-
-            {/* loading */}
-            {loading && (
-                <View style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    zIndex: 999,
-                }}>
-                    <ActivityIndicator size="large" color="#ae9159" />
-                </View>
-            )}
+                {loading && (
+                    <View style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        zIndex: 999,
+                    }}>
+                        <ActivityIndicator size="large" color="#ae9159" />
+                    </View>
+                )
+                }
 
 
-            {/* ERROR */}
-            {(error && !loading) && (
-                <View style={[styles.errorMessage]}>
-                    <Text />
-                    <Text style={{ color: 'red', fontFamily: 'Poppins_500Medium', textAlign: 'center', maxWidth: 300 }}>{error}</Text>
-                    <TouchableOpacity onPress={() => setError(null)}>
-                        <Ionicons name="close" size={16} color="red" />
-                    </TouchableOpacity>
-                </View>
-            )}
+                {/* ERROR */}
+                {
+                    (error && !loading) && (
+                        <View style={[styles.errorMessage]}>
+                            <Text />
+                            <Text style={{ color: 'red', fontFamily: 'Poppins_500Medium', textAlign: 'center', maxWidth: 300 }}>{error}</Text>
+                            <TouchableOpacity onPress={() => setError(null)}>
+                                <Ionicons name="close" size={16} color="red" />
+                            </TouchableOpacity>
+                        </View>
+                    )
+                }
 
-            {/* Share Button */}
-            <TouchableOpacity style={styles.shareButton} onPress={onShare}>
-                <Text style={styles.shareButtonText}>Post Now</Text>
-            </TouchableOpacity>
-        </SafeAreaView>
+                {/* Share Button */}
+                <TouchableOpacity style={styles.shareButton} onPress={onShare}>
+                    <Text style={styles.shareButtonText}>Post Now</Text>
+                </TouchableOpacity>
+            </KeyboardAccessoryView>
+
+        </SafeAreaView >
     );
 };
 
@@ -221,7 +231,8 @@ const styles = StyleSheet.create({
         justifyContent: "flex-start",
         textAlignVertical: 'top',
         maxHeight: 100,
-        paddingHorizontal: 10,
+        height: 100,
+        paddingHorizontal: 15,
         fontFamily: 'Poppins_500Medium',
     },
     selectedImage: {

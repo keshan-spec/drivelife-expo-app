@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>$(DEVELOPMENT_LANGUAGE)</string>
+    <key>CFBundleDisplayName</key>
+    <string>DriveLife</string>
+    <key>CFBundleExecutable</key>
+    <string>$(EXECUTABLE_NAME)</string>
+    <key>CFBundleIdentifier</key>
+    <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>$(PRODUCT_NAME)</string>
+    <key>CFBundlePackageType</key>
+    <string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
+    <key>CFBundleShortVersionString</key>
+    <string>3.0.8</string>
+    <key>CFBundleSignature</key>
+    <string>????</string>
+    <key>CFBundleURLTypes</key>
+    <array>
+      <dict>
+        <key>CFBundleURLSchemes</key>
+        <array>
+          <string>carcalendar</string>
+          <string>com.app.carcalendar</string>
+        </array>
+      </dict>
+      <dict>
+        <key>CFBundleURLSchemes</key>
+        <array>
+          <string>exp+carcal-v1</string>
+        </array>
+      </dict>
+      <dict>
+        <key>CFBundleTypeRole</key>
+        <string>Editor</string>
+        <key>CFBundleURLName</key>
+        <string></string>
+        <key>CFBundleURLSchemes</key>
+        <array>
+          <string>app.mydrivelife.com</string>
+        </array>
+      </dict>
+    </array>
+    <key>CFBundleVersion</key>
+    <string>4</string>
+    <key>LSRequiresIPhoneOS</key>
+    <true/>
+    <key>NSAppTransportSecurity</key>
+    <dict>
+      <key>NSAllowsArbitraryLoads</key>
+      <true/>
+      <key>NSExceptionDomains</key>
+      <dict>
+        <key>localhost</key>
+        <dict>
+          <key>NSExceptionAllowsInsecureHTTPLoads</key>
+          <true/>
+        </dict>
+      </dict>
+    </dict>
+    <key>NSAppleMusicUsageDescription</key>
+    <string>We need access to your media to post images</string>
+    <key>NSBluetoothPeripheralUsageDescription</key>
+    <string>We need Bluetooth permissions to connect to devices.</string>
+    <key>NSCameraUsageDescription</key>
+    <string>We need camera permissions to allow you to upload profile photos.</string>
+    <key>NSFileProviderUsageDescription</key>
+    <string>We need file provider permissions to manage files on your device.</string>
+    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+    <string>We need location permissions to track your location in the background.</string>
+    <key>NSLocationAlwaysUsageDescription</key>
+    <string>We need location permissions to track your location in the background.</string>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>We need location permissions to allow you to use the app.</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>We need microphone permissions to allow you to record audio.</string>
+    <key>NSMotionUsageDescription</key>
+    <string>We need motion permissions to detect device movement.</string>
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>Allow $(PRODUCT_NAME) to save photos.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>Allow $(PRODUCT_NAME) to access your photos.</string>
+    <key>NSUserTrackingUsageDescription</key>
+    <string>We need tracking permissions for targeted advertising.</string>
+    <key>UIBackgroundModes</key>
+    <array>
+      <string>fetch</string>
+      <string>remote-notification</string>
+    </array>
+    <key>UILaunchStoryboardName</key>
+    <string>SplashScreen</string>
+    <key>UIRequiredDeviceCapabilities</key>
+    <array>
+      <string>armv7</string>
+    </array>
+    <key>UIRequiresFullScreen</key>
+    <false/>
+    <key>UIStatusBarStyle</key>
+    <string>UIStatusBarStyleDefault</string>
+    <key>UISupportedInterfaceOrientations</key>
+    <array>
+      <string>UIInterfaceOrientationPortrait</string>
+      <string>UIInterfaceOrientationPortraitUpsideDown</string>
+    </array>
+    <key>UISupportedInterfaceOrientations~ipad</key>
+    <array>
+      <string>UIInterfaceOrientationPortrait</string>
+      <string>UIInterfaceOrientationPortraitUpsideDown</string>
+      <string>UIInterfaceOrientationLandscapeLeft</string>
+      <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
+    <key>UIUserInterfaceStyle</key>
+    <string>Dark</string>
+    <key>UIViewControllerBasedStatusBarAppearance</key>
+    <false/>
+  </dict>
+</plist>

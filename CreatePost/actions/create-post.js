@@ -120,58 +120,6 @@ const completeMultipartUpload = async (bucketName, fileName, uploadId, parts) =>
     return response;
 };
 
-// const compressMedia = async (media, type) => {
-//     if (type === 'image') {
-//         // const compressedImage = await Image.compress(media.uri, {
-//         //     quality: 1,
-//         // });
-//         console.log(media.uri);
-
-//         const {
-//             ImageHeight,
-//             ImageWidth,
-//             size,
-//             extension
-//         } = await getImageMetaData(media.uri);
-
-//         return {
-//             uri: media.uri,
-//             height: ImageHeight,
-//             width: ImageWidth,
-//             fileSize: size,
-//             filename: `${uuid.v4()}.${extension}`,
-//         };
-//     } else if (type === 'video') {
-//         // check if the video is over 10MB
-//         if (media.fileSize < MIN_COMPRESSION_SIZE) {
-//             return {
-//                 ...media,
-//                 filename: `${uuid.v4()}.mp4`,
-//             };
-//         }
-
-//         const compressedVideo = await RNVideoHelper.compress(media.uri, {
-//             quality: 'high',
-//         });
-
-//         const {
-//             size,
-//             height,
-//             width,
-//             extension
-//         } = await getVideoMetaData(compressedVideo);
-
-//         return {
-//             uri: compressedVideo,
-//             height,
-//             width,
-//             fileSize: size,
-//             filename: `${uuid.v4()}.${extension}`
-//         };
-//     }
-
-//     return null;
-// };
 const compressMedia = async (media, type) => {
     try {
         // Convert ph:// URI to local file path
@@ -363,6 +311,7 @@ export const addPost = async ({
     taggedEntities = [],
     association_id,
     association_type,
+    onPostAdded = () => {}
 }) => {
     try {
         if (!user_id || !mediaList || mediaList.length === 0) {
@@ -406,6 +355,7 @@ export const addPost = async ({
         await addNotification("Post created", "Post created successfully", {
             post_id: data.post_id,
         });
+        onPostAdded();
         return data;
     } catch (e) {
         await addNotification("Failed to create post", e.message || "Failed to create post");

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { SafeAreaView, AppState, Alert, Linking, ScrollView, BackHandler, Platform, StatusBar } from "react-native";
+import { SafeAreaView, AppState, Alert, Linking, ScrollView, BackHandler, Platform, StatusBar, View } from "react-native";
 import { WebView, WebViewMessageEvent } from 'react-native-webview';
 
 import 'expo-dev-client';
@@ -14,8 +14,9 @@ import { associateDeviceWithUser, GetAllPermissions, maybeSetUserLocation, setUs
 import CreatePost from "./CreatePost/CreatePostPage";
 import { addPost } from "./CreatePost/actions/create-post";
 import { CreatePostProps, WebMessage } from 'types';
+import ProgressNotification from './ProgressNotif';
 
-const URL = 'https://phpstack-889362-4370795.cloudwaysapps.com';
+const URL = 'https://app.mydrivelife.com';
 const options = {
   taskName: 'PostUpload',
   taskTitle: 'Post Upload',
@@ -47,6 +48,9 @@ export default function App() {
 
   // This state saves whether your WebView can go back
   const [webViewcanGoBack, setWebViewcanGoBack] = useState(false);
+
+  const [isPostUploading, setIsPostUploading] = useState(false);
+  const [postMedia, setPostMedia] = useState<string | null>(null);
 
   const setNotifChannels = async () => {
     Notifications.setNotificationHandler({
@@ -240,8 +244,10 @@ export default function App() {
     taggedEntities,
   }: CreatePostProps) => {
     try {
-      setDeepLinkUrl(URL);
+      // setDeepLinkUrl(URL);
       setView('webview');
+      setIsPostUploading(true);
+      setPostMedia(media[0].uri);
 
       await BackgroundService.start(() =>
         addPost({
@@ -252,11 +258,20 @@ export default function App() {
           taggedEntities,
           association_id: messageData?.association_id,
           association_type: messageData?.association_type,
+          onPostAdded: () => {
+            setPostMedia(null);
+            setIsPostUploading(false);
+          },
         }),
         options
       );
     } catch (error) {
+      setPostMedia(null);
+      setIsPostUploading(false);
       await BackgroundService.stop();
+      Alert.alert('Error', 'An error occurred while uploading the post', [
+        { text: 'OK' },
+      ]);
       console.error('Error uploading post:', error);
     }
   }, [carcalSession, messageData]);
@@ -362,20 +377,24 @@ export default function App() {
     }
   }, []);
 
+  useEffect(() => {
+    console.log('BackGround service:   ', BackgroundService.isRunning());
+  }, [BackgroundService]);
+
   return (
-    <SafeAreaView style={{
+    <View style={{
       flex: 1,
       position: 'relative',
-      backgroundColor: '#fff',
+      backgroundColor: '#000',
     }}>
       <StatusBar
         barStyle="default"
         hidden={false}
       />
 
-      {/* {BackgroundService.isRunning() && (
-        <ProgressNotification />
-      )} */}
+      {(isPostUploading && postMedia) && (
+        <ProgressNotification media_uri={postMedia} />
+      )}
 
       {view === 'createPost' && (
         <CreatePost
@@ -385,21 +404,24 @@ export default function App() {
       )}
 
       {/* {view === 'webview' && ( */}
-      <ScrollView
-        contentContainerStyle={{
+      <View
+        style={{
           flex: 1,
           backgroundColor: '#fff',
-
-        }}
-        style={{
           display: view === 'webview' ? 'flex' : 'none',
         }}
       >
         <WebView
           ref={webViewRef}
+          onContentProcessDidTerminate={() => {
+            console.log('Content Process Terminated');
+
+            webViewRef.current?.reload();
+          }}
           mediaCapturePermissionGrantType='grant'
           bounces={false}
           contentMode='mobile'
+          overScrollMode='never'
           allowsBackForwardNavigationGestures
           javaScriptEnabled
           autoManageStatusBarEnabled
@@ -413,8 +435,8 @@ export default function App() {
             setWebViewcanGoBack(nativeEvent.canGoBack);
           }}
         />
-      </ScrollView>
+      </View>
       {/* )} */}
-    </SafeAreaView>
+    </View>
   );
 }

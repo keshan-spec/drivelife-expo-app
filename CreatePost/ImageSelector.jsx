@@ -145,61 +145,6 @@ const ImageSelector = ({ navigation, onClose }) => {
         }
     }, [selectedPhotos]);
 
-    const getPhotosV1 = async (page) => {
-        try {
-            const hasPermission = await checkAndRequestMediaLibraryPermissions();
-            if (!hasPermission) {
-                return
-            }
-            // if (Platform.OS === "android" && !(await MediaLibrary.requestPermissionsAsync())) {
-            //     return;
-            // }
-
-            const gallery = await MediaLibrary.getAssetsAsync({
-                first: 20 * page,
-                mediaType: ['video', 'photo'],
-                sortBy: ['creationTime'],
-            });
-
-            const { assets, hasNextPage } = gallery;
-
-            if (!hasNextPage) {
-                setHasNextPage(false);
-            }
-
-            const images = assets.map(async (asset) => {
-                let { size } = await stat(asset.uri);
-
-                const mimeType = asset.filename.split('.').pop();
-                const type = asset.mediaType === 'photo' ? 'image' : 'video';
-
-                return {
-                    uri: asset.uri,
-                    fileName: asset.filename,
-                    fileSize: size,
-                    type: `${type}/${mimeType}`,
-                    width: asset.width,
-                    height: asset.height,
-                    id: asset.id,
-                };
-            });
-
-            const media = await Promise.all(images);
-
-            setPhotos(media);
-
-            if (selectedPhotos.length === 0 && media.length > 0) {
-                setSelectedPhotos([media[0]]);
-            }
-        } catch (error) {
-            console.log('Error getting photos', error);
-            showSettingsAlert({
-                title: 'Storage Permission',
-                message: 'Storage access is required to select photos. Please enable it in the settings.',
-            });
-        }
-    };
-
     const getPhotos = async (page) => {
         try {
             const hasPermission = await checkAndRequestMediaLibraryPermissions();
@@ -209,7 +154,7 @@ const ImageSelector = ({ navigation, onClose }) => {
 
             const gallery = await MediaLibrary.getAssetsAsync({
                 first: 20 * page,
-                mediaType: ['video', 'photo'],
+                mediaType: ['photo'],
                 sortBy: ['creationTime'],
             });
 
@@ -313,15 +258,14 @@ const ImageSelector = ({ navigation, onClose }) => {
     };
 
     const openImagePicker = () => {
-        const options = {
+
+        launchImageLibrary({
             title: 'Select Images',
-            mediaType: 'mixed',
+            mediaType: 'photo',
             presentationStyle: 'formSheet',
             selectionLimit: isMultiSelect ? 5 : 1,
             includeExtra: true,
-        };
-
-        launchImageLibrary(options, (response) => {
+        }, (response) => {
             if (response.didCancel) {
                 console.log('User cancelled image picker');
             } else if (response.error) {
@@ -364,7 +308,7 @@ const ImageSelector = ({ navigation, onClose }) => {
     };
 
     return (
-        <SafeAreaView style={{ flex: 1 }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: 'black' }}>
             <View style={styles.header}>
                 <View style={{
                     flexDirection: 'row',

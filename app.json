@@ -36,7 +36,7 @@
         "NSAppleMusicUsageDescription": "We need access to your media to post images",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "We need location permissions to track your location in the background."
       },
-      "icon": "./assets/ios/app_icon.png"
+      "icon": "./assets/ios/appstore.png"
     },
     "android": {
       "adaptiveIcon": {

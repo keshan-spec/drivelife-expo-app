@@ -176,6 +176,8 @@ export default function App() {
 
       const data = notification.notification.additionalData as { url?: string; };
       if (data && data.url) {
+        console.log('Notification opened:', `${URL}${data.url}`);
+
         setDeepLinkUrl(`${URL}${data.url}`);
       }
     });
@@ -377,10 +379,6 @@ export default function App() {
     }
   }, []);
 
-  useEffect(() => {
-    console.log('BackGround service:   ', BackgroundService.isRunning());
-  }, [BackgroundService]);
-
   return (
     <View style={{
       flex: 1,
@@ -414,8 +412,6 @@ export default function App() {
         <WebView
           ref={webViewRef}
           onContentProcessDidTerminate={() => {
-            console.log('Content Process Terminated');
-
             webViewRef.current?.reload();
           }}
           mediaCapturePermissionGrantType='grant'
@@ -423,11 +419,19 @@ export default function App() {
           contentMode='mobile'
           overScrollMode='never'
           allowsBackForwardNavigationGestures
+          onShouldStartLoadWithRequest={event => {
+            // if url is not from the app, open it in the browser
+            if (!event.url.startsWith(URL)) {
+              Linking.openURL(event.url);
+              return false;
+            }
+
+            return true;
+          }}
           javaScriptEnabled
           autoManageStatusBarEnabled
           allowsInlineMediaPlayback
           source={{ uri: `${URL}${deepLinkUrl ? '?deeplink=' + deepLinkUrl : ''}` }}
-          // source={{ uri: `https://www.carevents.com/uk/get-tickets/event.php?event_id=WGlGNUhEWFE0cTZIWWJXT3RPaHN5dz09` }}
           onMessage={onMessage}
           onLoadProgress={({ nativeEvent }) => {
             // This function is called everytime your web view loads a page

@@ -385,6 +385,7 @@ export default function App() {
         }}
       >
         <WebView
+          onContentProcessDidTerminate={() => console.log('Content process terminated')}
           ref={webViewRef}
           overScrollMode='never'
           enableApplePay

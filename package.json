@@ -6,7 +6,7 @@
     "android": "npx expo run:android",
     "ios": "npx expo run:ios",
     "web": "expo start --web",
-    "build:android": "rm -rf android && eas build --platform android --profile preview"
+    "build:android": "rm -rf android && eas build --platform android --profile production"
   },
   "dependencies": {
     "@aws-sdk/client-secrets-manager": "^3.606.0",

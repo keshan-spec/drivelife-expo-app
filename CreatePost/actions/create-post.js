@@ -3,7 +3,7 @@ import AWS from 'aws-sdk';
 import RNFS from 'react-native-fs';
 import uuid from 'react-native-uuid';
 import BackgroundService from 'react-native-background-actions';
-import { getImageMetaData, getVideoMetaData } from 'react-native-compressor';
+import { getImageMetaData, getVideoMetaData, Image } from 'react-native-compressor';
 import RNVideoHelper from 'react-native-video-helper';
 
 import { Buffer } from "buffer";
@@ -74,18 +74,23 @@ const completeMultipartUpload = async (bucketName, fileName, uploadId, parts) =>
 const compressMedia = async (media, type) => {
     if (type === 'image') {
         // const compressedImage = await Image.compress(media.uri, {
-        //     quality: 1,
+        //     quality: 0.9,
+        //     compressionMethod: 'manual',
+        //     maxWidth: 2000,
+        //     maxHeight: 2000,
+        //     output: 'jpg',
         // });
+        const compressedImage = media.uri;
 
         const {
             ImageHeight,
             ImageWidth,
             size,
             extension
-        } = await getImageMetaData(media.uri);
+        } = await getImageMetaData(compressedImage);
 
         return {
-            uri: media.uri,
+            uri: compressedImage,
             height: ImageHeight,
             width: ImageWidth,
             fileSize: size,

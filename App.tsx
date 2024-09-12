@@ -51,8 +51,6 @@ export default function App() {
   const setNotifChannels = async () => {
     Notifications.setNotificationHandler({
       handleNotification: async (notification) => {
-        console.log('Notification received:', notification);
-
         // Check if the notification has content
         const { title, body } = notification.request.content;
 
@@ -63,7 +61,6 @@ export default function App() {
             shouldSetBadge: false,
           };
         } else {
-          console.log('Contentless notification filtered out');
           return {
             shouldShowAlert: false,
             shouldPlaySound: false,
@@ -122,12 +119,10 @@ export default function App() {
     OneSignal.setAppId(Constants.expoConfig?.extra?.onesignal.app_id);
     OneSignal.addSubscriptionObserver((event) => {
       // if event.to is true, the user is subscribed
-      // console.log(`OneSignal Subscription Changed: ${event}`);
       if (event.to) {
         // get user id 
         OneSignal.getDeviceState().then((deviceState) => {
           if (deviceState && deviceState.userId) {
-            console.log(`OneSignal Player ID: ${deviceState.userId}`);
             setPlayerId(deviceState.userId);
           }
         });
@@ -139,8 +134,6 @@ export default function App() {
       let notifId = notification.notificationId;
       let title = notification.title;
 
-      console.log(`OneSignal New Notif> ID: ${notifId}, Title: ${title}`);
-
       notificationReceivedEvent.complete(notification);
     });
 
@@ -150,10 +143,6 @@ export default function App() {
         setDeepLinkUrl(`${URL}${data.url}`);
       }
     });
-
-    // OneSignal.setInAppMessageClickHandler((event) => {
-    //   console.log('OneSignal IAM clicked:', event);
-    // });
 
     return () => {
       OneSignal.clearHandlers();
@@ -206,7 +195,6 @@ export default function App() {
       await associateDeviceWithUser(carcalSession, playerId);
 
       if (location && location !== null) {
-        console.log(`Location status :`, location);
         await maybeSetUserLocation(location, carcalSession);
       }
     }
@@ -282,7 +270,6 @@ export default function App() {
       }
 
       const message = JSON.parse(data) as WebMessage;
-      console.log('Message received:', message);
 
       switch (message.type) {
         case 'authData':

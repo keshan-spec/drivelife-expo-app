@@ -14,6 +14,9 @@ const API_URL = Constants.expoConfig.extra.headlessAPIUrl;
 const BUCKET_NAME = Constants.expoConfig.extra.awsBucketName;
 const MIN_COMPRESSION_SIZE = 1024 * 1024 * 20; // 20MB
 
+const CLOUDFARE_ACCOUNT_ID = Constants.expoConfig.extra.cloudflareAccountId;
+const CLOUDFARE_API_TOKEN = Constants.expoConfig.extra.cloudflareApiToken;
+
 AWS.config.update({
     region: Constants.expoConfig.extra.awsRegion,
     credentials: {
@@ -73,14 +76,10 @@ const completeMultipartUpload = async (bucketName, fileName, uploadId, parts) =>
 
 const compressMedia = async (media, type) => {
     if (type === 'image') {
-        // const compressedImage = await Image.compress(media.uri, {
-        //     quality: 0.9,
-        //     compressionMethod: 'manual',
-        //     maxWidth: 2000,
-        //     maxHeight: 2000,
-        //     output: 'jpg',
-        // });
-        const compressedImage = media.uri;
+        const compressedImage = await Image.compress(media.uri, {
+            quality: 1,
+        });
+        // const compressedImage = media.uri;
 
         const {
             ImageHeight,
@@ -222,17 +221,81 @@ const uploadFileInChunks = async (user_id, mediaList) => {
     }
 };
 
-const addNotification = async (title, message, data = null) => {
-    // add a notification to the user
-    await Notifications.scheduleNotificationAsync({
-        content: {
-            title,
-            body: message,
-            data: data,
-        },
-        trigger: null,
-        identifier: 'primary',
-    });
+const uploadFilesToCloudflare = async (mediaList) => {
+    const CLOUDFLARE_ACCOUNT_ID = Constants.expoConfig.extra.cloudflareAccountId;
+    const CLOUDFLARE_API_TOKEN = Constants.expoConfig.extra.cloudflareApiToken;
+
+    const CLOUDFLARE_UPLOAD_URL = `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/images/v1`;
+
+    try {
+        const uploadedData = [];
+        let completeStatusPercent = 0;
+
+        for (let i = 0; i < mediaList.length; i++) {
+            const file = mediaList[i];
+            const type = file.type.split('/')[0];
+            const mime = file.type;
+
+            // Compress file if needed (similar to your current setup)
+            const currentFile = await compressMedia(file, type);
+            if (!currentFile) {
+                throw new Error('Failed to compress media');
+            }
+
+            const filePath = currentFile.uri;
+            const fileName = currentFile.filename;
+            const fileSize = currentFile.fileSize;
+
+            // Read the file as base64
+            const fileData = await RNFS.readFile(filePath, 'base64');
+            const formData = new FormData();
+            formData.append('file', {
+                uri: `data:${mime};base64,${fileData}`,
+                name: fileName,
+                type: mime
+            });
+
+            // Make the POST request to upload the file
+            const request = await fetch(CLOUDFLARE_UPLOAD_URL, {
+                method: "POST",
+                body: formData,
+                headers: {
+                    'Authorization': `Bearer ${CLOUDFLARE_API_TOKEN}`,
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+
+            const response = await request.json();
+            console.log('Cloudflare upload response:', response);
+
+            if (!response || response.success !== true) {
+                throw new Error(response.errors[0].message || 'Failed to upload file to Cloudflare');
+            }
+
+            if (response && response.success === true) {
+                const { id } = response.result;
+
+                uploadedData.push({
+                    url: id,
+                    mime,
+                    type,
+                    width: currentFile.width,
+                    height: currentFile.height,
+                    server: 'cloudflare'
+                });
+            }
+
+            // Update progress
+            completeStatusPercent = Math.round(((i + 1) / mediaList.length) * 100);
+            console.log(`File ${i + 1}/${mediaList.length} upload complete: ${completeStatusPercent}%`);
+        }
+
+        return uploadedData;
+    } catch (error) {
+        console.error('Error uploading files to Cloudflare:', error);
+        await BackgroundService.stop();
+        throw error;
+    }
 };
 
 export const addPost = async ({
@@ -250,7 +313,8 @@ export const addPost = async ({
             throw new Error("Invalid data");
         }
 
-        const media = await uploadFileInChunks(user_id, mediaList);
+        // const media = await uploadFileInChunks(user_id, mediaList);
+        const media = await uploadFilesToCloudflare(mediaList);
         const formData = new FormData();
 
         formData.append("user_id", user_id);
@@ -288,6 +352,7 @@ export const addPost = async ({
         return data;
     } catch (e) {
         await addNotification("Failed to create post", e.message || "Failed to create post");
+        await BackgroundService.stop();
         throw new Error(`Failed to create post: ${e.message}`);
     }
 };
@@ -341,4 +406,17 @@ export const fetchTaggableEntites = async (user_id, search, tagged_entities, is_
     } catch (e) {
         return [];
     }
+};
+
+const addNotification = async (title, message, data = null) => {
+    // add a notification to the user
+    await Notifications.scheduleNotificationAsync({
+        content: {
+            title,
+            body: message,
+            data: data,
+        },
+        trigger: null,
+        identifier: 'primary',
+    });
 };

@@ -12,6 +12,8 @@ module.exports = ({ config }) => {
             awsAccessKeyId: process.env.AWS_ACCESS_KEY_ID,
             awsSecretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
             headlessAPIUrl: process.env.HEADLESS_API_URL || 'https://www.carevents.com/uk',
+            cloudflareApiToken: process.env.CLOUDFARE_API_KEY,
+            cloudflareAccountId: process.env.CLOUDFARE_ACCOUNT_ID,
         }
     };
 };

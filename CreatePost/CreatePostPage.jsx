@@ -4,13 +4,14 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { PostProvider } from './ContextProvider';
 import ImageSelector from './ImageSelector';
-import SharePost from './SharePanel';
+import SharePostStep1 from './SharePanel';
 import { Dimensions, StyleSheet } from 'react-native';
 
 // get poppin font
 import { useFonts } from 'expo-font';
 
 import { Poppins_500Medium, Poppins_700Bold } from "@expo-google-fonts/poppins";
+import SharePostTagPanel from './SharePanelTags';
 
 const numColumns = 3;
 const screenWidth = Dimensions.get('window').width;
@@ -47,7 +48,15 @@ const CreatePost = ({
                         options={{ headerShown: false }}
                     >
                         {({ navigation }) => (
-                            <SharePost navigation={navigation} onComplete={onComplete} />
+                            <SharePostStep1 navigation={navigation} onComplete={onComplete} />
+                        )}
+                    </Stack.Screen>
+                    <Stack.Screen
+                        name="SharePanelTags"
+                        options={{ headerShown: false }}
+                    >
+                        {({ navigation }) => (
+                            <SharePostTagPanel navigation={navigation} onComplete={onComplete} />
                         )}
                     </Stack.Screen>
                 </Stack.Navigator>

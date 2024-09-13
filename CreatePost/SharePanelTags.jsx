@@ -4,13 +4,10 @@ import { usePostProvider } from './ContextProvider';
 import { Ionicons } from '@expo/vector-icons';
 import Collapsible from './Collapsible';
 import { useCallback, useMemo, useState } from 'react';
-import EditImage from './Components/EditImage';
 
-const SharePostStep1 = ({ navigation, onComplete }) => {
-    const { selectedPhotos, setStep, taggedEntities, updateSelectedImage, caption, setCaption } = usePostProvider();
-    const [loading, setLoading] = useState(false);
+const SharePostTagPanel = ({ navigation, onComplete }) => {
+    const { selectedPhotos, setStep, taggedEntities, updateSelectedImage, caption } = usePostProvider();
     const [error, setError] = useState(null);
-    const [editImageIdx, setEditImageIdx] = useState(null);
 
     const isVideo = (media) => media.type.startsWith('video') ? true : false;
 
@@ -24,12 +21,10 @@ const SharePostStep1 = ({ navigation, onComplete }) => {
             }
 
             return (
-                <TouchableWithoutFeedback onPress={() => setEditImageIdx(0)}>
-                    <Image
-                        source={{ uri: selectedPhotos[0].uri }}
-                        style={styles.selectedImage}
-                    />
-                </TouchableWithoutFeedback>
+                <Image
+                    source={{ uri: selectedPhotos[0].uri }}
+                    style={styles.selectedImage}
+                />
             );
         }
 
@@ -50,46 +45,29 @@ const SharePostStep1 = ({ navigation, onComplete }) => {
                     }
 
                     return (
-                        <TouchableWithoutFeedback
-                            onPress={() => setEditImageIdx(index)}
-                            key={index}
-                        >
-                            <Image
-                                source={{ uri: item.uri }}
-                                style={styles.selectedImage}
-                            />
-                        </TouchableWithoutFeedback>
+                        <Image
+                            source={{ uri: item.uri }}
+                            style={styles.selectedImage}
+                        />
                     );
                 }}
             />
         );
-    }, [selectedPhotos, editImageIdx]);
-
-    const getFirstImageAspectRatio = () => {
-        const images = selectedPhotos.filter((item) => !isVideo(item));
-        const firstImage = images[0];
-        const aspectRatio = firstImage.width / firstImage.height;
-        return aspectRatio;
-    };
-
-    const firstImageIndex = useMemo(() => {
-        return selectedPhotos.findIndex((item) => !isVideo(item));
     }, [selectedPhotos]);
 
-    if (editImageIdx !== null) {
-        return (
-            <EditImage
-                image={selectedPhotos[editImageIdx]}
-                onSave={(data) => {
-                    updateSelectedImage(editImageIdx, data);
-                    setEditImageIdx(null);
-                }}
-                aspectLock={editImageIdx !== firstImageIndex}
-                aspectRatio={editImageIdx === firstImageIndex ? 0 : getFirstImageAspectRatio()}
-                onCancel={() => setEditImageIdx(null)}
-            />
-        );
-    }
+    const onShare = async () => {
+        try {
+            onComplete({
+                media: selectedPhotos,
+                caption,
+                location: null,
+                taggedEntities,
+            });
+        } catch (error) {
+            console.log('Error sharing post:', error);
+            setError('An error occurred while sharing your post. Please try again later.');
+        }
+    };
 
     return (
         <SafeAreaView style={styles.container}>
@@ -109,22 +87,6 @@ const SharePostStep1 = ({ navigation, onComplete }) => {
                             </Text>
                         </View>
                     </TouchableOpacity>
-
-                    <TouchableOpacity onPress={() => {
-                        navigation.navigate('SharePanelTags');
-                    }}>
-                        <View style={{
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                        }}>
-                            <Text style={[styles.headerText, styles.poppinsFont, {
-                                color: '#ae9159',
-                                marginRight: 5,
-                            }]}>
-                                Next
-                            </Text>
-                        </View>
-                    </TouchableOpacity>
                 </View>
 
                 <View style={{
@@ -139,34 +101,24 @@ const SharePostStep1 = ({ navigation, onComplete }) => {
                     {renderSelectedPhotos()}
                 </View>
 
-                <View style={styles.textAreaContainer} >
-                    <TextInput
-                        multiline={true}
-                        defaultValue={caption}
-                        onChangeText={setCaption}
-                        numberOfLines={5}
-                        style={styles.captionInput}
-                        placeholder="Write a caption..."
-                        placeholderTextColor="#aaa"
-                    />
-                </View>
+                <Collapsible />
             </ScrollView>
 
-            {loading && (
-                <View style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    zIndex: 999,
-                }}>
-                    <ActivityIndicator size="large" color="#ae9159" />
+            {/* ERROR */}
+            {(error) && (
+                <View style={[styles.errorMessage]}>
+                    <Text />
+                    <Text style={{ color: 'red', fontFamily: 'Poppins_500Medium', textAlign: 'center', maxWidth: 300 }}>{error}</Text>
+                    <TouchableOpacity onPress={() => setError(null)}>
+                        <Ionicons name="close" size={16} color="red" />
+                    </TouchableOpacity>
                 </View>
             )}
+
+            {/* Share Button */}
+            <TouchableOpacity style={styles.shareButton} onPress={onShare}>
+                <Text style={styles.shareButtonText}>Post Now</Text>
+            </TouchableOpacity>
         </SafeAreaView>
     );
 };
@@ -175,7 +127,7 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#F9F9F9',
-        // height: Dimensions.get('window').height,
+        height: Dimensions.get('window').height,
     },
     poppinsFont: {
         fontFamily: 'Poppins_500Medium',
@@ -206,7 +158,7 @@ const styles = StyleSheet.create({
     },
     scrollView: {
         // padding: 16,
-        // height: '100%',
+        height: '100%',
     },
     header: {
         flexDirection: 'row',
@@ -238,4 +190,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default SharePostStep1;
+export default SharePostTagPanel;

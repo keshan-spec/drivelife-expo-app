@@ -208,8 +208,6 @@ export default function App() {
   }: CreatePostProps) => {
     try {
       await setNotifChannels();
-
-      setDeepLinkUrl(URL);
       setView('webview');
 
       await BackgroundService.start(() =>
@@ -372,13 +370,14 @@ export default function App() {
         }}
       >
         <WebView
-          onContentProcessDidTerminate={() => console.log('Content process terminated')}
           ref={webViewRef}
+          onContentProcessDidTerminate={() => {
+            webViewRef.current?.reload();
+          }}
           overScrollMode='never'
           enableApplePay
           autoManageStatusBarEnabled
           source={{ uri: `${URL}${deepLinkUrl ? '?deeplink=' + deepLinkUrl : ''}` }}
-          // source={{ uri: `https://www.carevents.com/uk/get-tickets/event.php?event_id=WGlGNUhEWFE0cTZIWWJXT3RPaHN5dz09` }}
           onMessage={onMessage}
           onLoadProgress={({ nativeEvent }) => {
             // This function is called everytime your web view loads a page

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { SafeAreaView, AppState, Alert, Linking, ScrollView, BackHandler, Platform, StatusBar, View } from "react-native";
+import { AppState, Alert, Linking, BackHandler, Platform, StatusBar, View, ActivityIndicator } from "react-native";
 import { WebView, WebViewMessageEvent } from 'react-native-webview';
 
 import 'expo-dev-client';
@@ -401,7 +401,6 @@ export default function App() {
         />
       )}
 
-      {/* {view === 'webview' && ( */}
       <View
         style={{
           flex: 1,
@@ -412,13 +411,27 @@ export default function App() {
         <WebView
           ref={webViewRef}
           onContentProcessDidTerminate={() => {
+            console.log('Content Process Terminated');
+
+            // reintialize the webview
             webViewRef.current?.reload();
+          }}
+          renderLoading={() => (
+            <View style={{
+              flex: 1,
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}>
+              <ActivityIndicator size="large" color="#000" />
+            </View>
+          )}
+          onLoad={() => {
+            console.log('Webview loaded');
           }}
           mediaCapturePermissionGrantType='grant'
           bounces={false}
           contentMode='mobile'
           overScrollMode='never'
-          allowsBackForwardNavigationGestures
           onShouldStartLoadWithRequest={event => {
             // if url is not from the app, open it in the browser
             if (!event.url.startsWith(URL)) {
@@ -440,7 +453,6 @@ export default function App() {
           }}
         />
       </View>
-      {/* )} */}
     </View>
   );
 }

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { SafeAreaView, AppState, Alert, Linking, BackHandler, Platform, StatusBar, View } from "react-native";
+import { SafeAreaView, AppState, Alert, Linking, BackHandler, Platform, StatusBar, View, ActivityIndicator, Image } from "react-native";
 import { WebView, WebViewMessageEvent } from 'react-native-webview';
 
 import 'expo-dev-client';
@@ -131,9 +131,6 @@ export default function App() {
 
     OneSignal.setNotificationWillShowInForegroundHandler((notificationReceivedEvent) => {
       let notification = notificationReceivedEvent.getNotification();
-      let notifId = notification.notificationId;
-      let title = notification.title;
-
       notificationReceivedEvent.complete(notification);
     });
 
@@ -219,6 +216,15 @@ export default function App() {
           taggedEntities,
           association_id: messageData?.association_id,
           association_type: messageData?.association_type,
+          onUpload: () => {
+            console.log('Post uploaded..');
+
+            webViewRef.current?.injectJavaScript(`
+              if (window.onPostUpload) {
+                window.onPostUpload();
+              }
+            `);
+          }
         }),
         options
       );
@@ -226,7 +232,7 @@ export default function App() {
       await BackgroundService.stop();
       console.error('Error uploading post:', error);
     }
-  }, [carcalSession, messageData]);
+  }, [carcalSession, messageData, webViewRef]);
 
   // Get the users current location
   const getCurrentPosition = () => {
@@ -367,6 +373,7 @@ export default function App() {
           flex: 1,
           backgroundColor: '#fff',
           display: view === 'webview' ? 'flex' : 'none',
+          position: 'relative',
         }}
       >
         <WebView
@@ -375,6 +382,27 @@ export default function App() {
             webViewRef.current?.reload();
           }}
           overScrollMode='never'
+          startInLoadingState
+          renderLoading={() => {
+            return (
+              <View style={{
+                flex: 1,
+                justifyContent: 'center',
+                alignItems: 'center',
+                height: '100%',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+              }}>
+                <Image
+                  style={{ width: 20, height: 20 }}
+                  source={require('./assets/loader.gif')}
+                />
+              </View>
+            );
+          }}
           enableApplePay
           autoManageStatusBarEnabled
           source={{ uri: `${URL}${deepLinkUrl ? '?deeplink=' + deepLinkUrl : ''}` }}

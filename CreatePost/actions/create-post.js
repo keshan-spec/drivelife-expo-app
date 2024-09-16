@@ -266,7 +266,6 @@ const uploadFilesToCloudflare = async (mediaList) => {
             });
 
             const response = await request.json();
-            console.log('Cloudflare upload response:', response);
 
             if (!response || response.success !== true) {
                 throw new Error(response.errors[0].message || 'Failed to upload file to Cloudflare');
@@ -306,6 +305,7 @@ export const addPost = async ({
     taggedEntities = [],
     association_id,
     association_type,
+    onUpload = () => { }
 }) => {
     try {
         if (!user_id || !mediaList || mediaList.length === 0) {
@@ -346,9 +346,11 @@ export const addPost = async ({
             const tag_response = await addTagsForPost(user_id, data.post_id, taggedEntities);
         }
 
+        onUpload();
         await addNotification("Post created", "Post created successfully", {
             post_id: data.post_id,
         });
+
         return data;
     } catch (e) {
         await addNotification("Failed to create post", e.message || "Failed to create post");

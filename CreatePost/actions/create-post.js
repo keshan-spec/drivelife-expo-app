@@ -291,9 +291,6 @@ const uploadFilesToCloudflare = async (mediaList) => {
     const CLOUDFLARE_ACCOUNT_ID = Constants.expoConfig.extra.cloudflareAccountId;
     const CLOUDFLARE_API_TOKEN = Constants.expoConfig.extra.cloudflareApiToken;
 
-    console.log('Cloudflare account ID:', CLOUDFLARE_ACCOUNT_ID);
-    console.log('Cloudflare API token:', CLOUDFLARE_API_TOKEN);
-
     const CLOUDFLARE_UPLOAD_URL = `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/images/v1`;
 
     try {
@@ -335,7 +332,6 @@ const uploadFilesToCloudflare = async (mediaList) => {
             });
 
             const response = await request.json();
-            console.log('Cloudflare upload response:', response);
 
             if (!response || response.success !== true) {
                 throw new Error(response.errors[0].message || 'Failed to upload file to Cloudflare');

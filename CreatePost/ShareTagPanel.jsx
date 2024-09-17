@@ -1,20 +1,17 @@
-import { View, Text, Image, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, TouchableWithoutFeedback, FlatList, Dimensions, ActivityIndicator, KeyboardAvoidingView, Keyboard } from 'react-native';
+import { View, Text, Image, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, TouchableWithoutFeedback, FlatList, Dimensions, ActivityIndicator, KeyboardAvoidingView } from 'react-native';
 import { usePostProvider } from './ContextProvider';
 
 import { Ionicons } from '@expo/vector-icons';
 import Collapsible from './Collapsible';
 import { useCallback, useMemo, useState } from 'react';
 import EditImage from './Components/EditImage';
-import { KeyboardAccessoryNavigation, KeyboardAccessoryView } from 'react-native-keyboard-accessory'
-import { useKeyboardVisible } from '../hooks/useKeyboardVisible';
+import { KeyboardAccessoryView } from 'react-native-keyboard-accessory'
 
 
-const SharePostStep1 = ({ navigation, onComplete }) => {
-    const { selectedPhotos, setStep, taggedEntities, updateSelectedImage, caption, setCaption } = usePostProvider();
+const SharePost = ({ navigation, onComplete }) => {
+    const { selectedPhotos, setStep, taggedEntities, caption } = usePostProvider();
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [editImageIdx, setEditImageIdx] = useState(null);
-
-    const { isKeyboardVisible } = useKeyboardVisible()
 
     const isVideo = (media) => media.type.startsWith('video') ? true : false;
 
@@ -28,12 +25,10 @@ const SharePostStep1 = ({ navigation, onComplete }) => {
             }
 
             return (
-                <TouchableWithoutFeedback onPress={() => setEditImageIdx(0)} style={{ flex: 1 }}>
-                    <Image
-                        source={{ uri: selectedPhotos[0].uri }}
-                        style={styles.selectedImage}
-                    />
-                </TouchableWithoutFeedback>
+                <Image
+                    source={{ uri: selectedPhotos[0].uri }}
+                    style={styles.selectedImage}
+                />
             );
         }
 
@@ -67,21 +62,16 @@ const SharePostStep1 = ({ navigation, onComplete }) => {
                 }}
             />
         );
-    }, [selectedPhotos, editImageIdx]);
-
-    const getFirstImageAspectRatio = () => {
-        const images = selectedPhotos.filter((item) => !isVideo(item));
-        const firstImage = images[0];
-        const aspectRatio = firstImage.width / firstImage.height;
-        return aspectRatio;
-    };
-
-    const firstImageIndex = useMemo(() => {
-        return selectedPhotos.findIndex((item) => !isVideo(item));
     }, [selectedPhotos]);
 
     const onShare = async () => {
+        if (loading) {
+            return;
+        }
+
+        setLoading(true);
         try {
+            setLoading(false);
             onComplete({
                 media: selectedPhotos,
                 caption,
@@ -91,31 +81,15 @@ const SharePostStep1 = ({ navigation, onComplete }) => {
         } catch (error) {
             console.log('Error sharing post:', error);
             setError('An error occurred while sharing your post. Please try again later.');
+            setLoading(false);
         }
     };
-
-    if (editImageIdx !== null) {
-        return (
-            <EditImage
-                image={selectedPhotos[editImageIdx]}
-                onSave={(data) => {
-                    updateSelectedImage(editImageIdx, data);
-                    setEditImageIdx(null);
-                }}
-                aspectLock={editImageIdx !== firstImageIndex}
-                aspectRatio={editImageIdx === firstImageIndex ? 0 : getFirstImageAspectRatio()}
-                onCancel={() => setEditImageIdx(null)}
-            />
-        );
-    }
 
     return (
         <SafeAreaView style={styles.container}>
             <ScrollView contentContainerStyle={styles.scrollView}>
                 <View style={styles.header}>
                     <TouchableOpacity onPress={() => {
-                        setStep(0);
-                        // navigation.navigate('ImageSelection');
                         navigation.goBack();
                     }}>
                         <View style={{
@@ -128,23 +102,6 @@ const SharePostStep1 = ({ navigation, onComplete }) => {
                             </Text>
                         </View>
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => {
-                        navigation.navigate('SharePostTag');
-                    }}>
-                        <View style={{
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                        }}>
-                            <Text style={[styles.headerText, styles.poppinsFont, {
-                                color: '#ae9159',
-                                marginRight: 5,
-                            }]}>
-                                Next
-                                {' '}
-                            </Text>
-                            {/* <Ionicons name="chevron-forward" size={20} color="black" /> */}
-                        </View>
-                    </TouchableOpacity>
                 </View>
 
                 <View style={{
@@ -155,34 +112,24 @@ const SharePostStep1 = ({ navigation, onComplete }) => {
                     // backgroundColor: '#151617',
                     height: 350,
                     padding: 10,
-                    marginBottom: isKeyboardVisible ? 190 : 0,
                 }}>
                     {renderSelectedPhotos()}
                 </View>
+                <Collapsible />
 
-                <KeyboardAccessoryView alwaysVisible={true}
-                    inSafeAreaView
-                    // heightProperty='minHeight'
-                    style={{
-                        flex: 1,
-                        backgroundColor: '#F9F9F9',
-                        // height: 100
-                    }}>
-                    <View style={styles.textAreaContainer}>
-                        <TextInput
-                            defaultValue={caption}
-                            onChangeText={setCaption}
-                            multiline={true}
-                            numberOfLines={5}
-                            textBreakStrategy='balanced'
-                            scrollEnabled={true}
-                            style={styles.captionInput}
-                            placeholder="Write a caption..."
-                            placeholderTextColor="#aaa"
-                        />
+                {(error && !loading) && (
+                    <View style={[styles.errorMessage]}>
+                        <Text style={{ color: 'red', fontFamily: 'Poppins_500Medium', textAlign: 'center', maxWidth: 300 }}>{error}</Text>
+                        <TouchableOpacity onPress={() => setError(null)}>
+                            <Ionicons name="close" size={16} color="red" />
+                        </TouchableOpacity>
                     </View>
+                )}
 
-                </KeyboardAccessoryView>
+                {/* Share Button */}
+                <TouchableOpacity style={styles.shareButton} onPress={onShare}>
+                    <Text style={styles.shareButtonText}>Post Now</Text>
+                </TouchableOpacity>
             </ScrollView>
         </SafeAreaView >
     );
@@ -192,7 +139,6 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#F9F9F9',
-        minHeight: Dimensions.get('window').height,
         height: Dimensions.get('window').height,
     },
     poppinsFont: {
@@ -206,9 +152,7 @@ const styles = StyleSheet.create({
     textAreaContainer: {
         borderColor: '#ccc',
         borderWidth: 1,
-        padding: 5,
-        backgroundColor: '#F9F9F9',
-        height: Dimensions.get('window').height / 2,
+        padding: 5
     },
     captionInput: {
         marginTop: 10,
@@ -217,7 +161,6 @@ const styles = StyleSheet.create({
         maxHeight: 100,
         height: 100,
         paddingHorizontal: 15,
-        backgroundColor: '#fff',
         fontFamily: 'Poppins_500Medium',
     },
     selectedImage: {
@@ -225,11 +168,9 @@ const styles = StyleSheet.create({
         height: '100%',
         borderRadius: 15,
         // resizeMode: 'contain',
-        // flex: 1,
     },
     scrollView: {
-        // paddingHorizontal: 16,
-        // height: Dimensions.get('window').height,
+        // padding: 16,
         height: '100%',
     },
     header: {
@@ -262,4 +203,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default SharePostStep1;
+export default SharePost;

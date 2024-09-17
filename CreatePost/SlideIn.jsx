@@ -88,12 +88,13 @@ const BottomSheet = ({ visible, onClose, title, activePanel, onTag }) => {
     };
 
     return (
-        <SafeAreaView>
+        <View>
             <Modal
                 transparent
                 visible={visible}
                 animationType="none"
                 onRequestClose={handleClose}
+                collapsable
             >
                 <View style={styles.overlay}>
                     <TouchableOpacity style={styles.background} onPress={handleClose} />
@@ -124,7 +125,7 @@ const BottomSheet = ({ visible, onClose, title, activePanel, onTag }) => {
                     </Animated.View>
                 </View>
             </Modal>
-        </SafeAreaView>
+        </View>
     );
 };
 

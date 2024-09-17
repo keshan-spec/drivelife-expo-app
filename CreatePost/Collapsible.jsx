@@ -104,29 +104,33 @@ function Collapsible() {
         return (
             <View style={styles.accordHeader}>
                 <Text style={styles.accordTitle}>{section.title}</Text>
-                <View style={{
-                    display: 'flex',
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                }}>
-                    <Text style={{
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <View style={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
                         width: 20,
                         height: 20,
                         textAlign: 'center',
-                        textAlignVertical: 'center',
-                        borderRadius: 9999,
-                        fontSize: 12,
+                        textAlignVertical: 'center', // Android-specific centering
+                        lineHeight: 20, // Ensure text is vertically centered
+                        borderRadius: 50, // Half of the width/height to make it rounded
                         backgroundColor: taggedEntities.filter((entity) => entity.type === section.type).length ? '#ae9159' : '#bbb',
-                        color: 'white',
-                        fontFamily: 'Poppins_500Medium',
                     }}>
-                        {renderCount(section.type)}
-                    </Text>
+                        <Text style={{
+                            fontSize: 12,
+                            color: 'white',
+                            fontFamily: 'Poppins_500Medium',
+                        }}>
+                            {renderCount(section.type)}
+                        </Text>
+                    </View>
                     <MaterialCommunityIcons name={isActive ? 'chevron-up' : 'chevron-down'} size={20} color="#bbb" />
                 </View>
             </View>
         );
     };
+
 
     function renderContent(section, _, isActive) {
         return (
@@ -185,7 +189,7 @@ const styles = StyleSheet.create({
         fontFamily: 'Poppins_500Medium',
     },
     container: {
-        flex: 1,
+        // flex: 1,
         backgroundColor: 'white',
         fontFamily: 'Poppins-Bold',
     },

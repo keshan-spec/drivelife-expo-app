@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { AppState, Alert, Linking, BackHandler, Platform, StatusBar, View, ActivityIndicator } from "react-native";
+import { AppState, Alert, Linking, BackHandler, Platform, StatusBar, View, ActivityIndicator, Image } from "react-native";
 import { WebView, WebViewMessageEvent } from 'react-native-webview';
 
 import 'expo-dev-client';
@@ -263,6 +263,12 @@ export default function App() {
           onPostAdded: () => {
             setPostMedia(null);
             setIsPostUploading(false);
+
+            webViewRef.current?.injectJavaScript(`
+              if (window.onPostUpload) {
+                window.onPostUpload();
+              }
+            `);
           },
         }),
         options
@@ -406,28 +412,37 @@ export default function App() {
           flex: 1,
           backgroundColor: '#fff',
           display: view === 'webview' ? 'flex' : 'none',
+          position: 'relative',
         }}
       >
         <WebView
           ref={webViewRef}
           onContentProcessDidTerminate={() => {
-            console.log('Content Process Terminated');
-
             // reintialize the webview
             webViewRef.current?.reload();
           }}
+          startInLoadingState
           renderLoading={() => (
             <View style={{
               flex: 1,
               justifyContent: 'center',
               alignItems: 'center',
+              height: '100%',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
             }}>
-              <ActivityIndicator size="large" color="#000" />
+              <Image
+                source={require('./assets/loader.gif')}
+                style={{
+                  width: 20,
+                  height: 20,
+                }}
+              />
             </View>
           )}
-          onLoad={() => {
-            console.log('Webview loaded');
-          }}
           mediaCapturePermissionGrantType='grant'
           bounces={false}
           contentMode='mobile'

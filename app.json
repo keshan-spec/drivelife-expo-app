@@ -23,17 +23,15 @@
       "bundleIdentifier": "com.app.carcalendar",
       "buildNumber": "3.1.1",
       "infoPlist": {
-        "NSCameraUsageDescription": "We need camera permissions to allow you to upload profile photos.",
-        "NSMicrophoneUsageDescription": "We need microphone permissions to allow you to record audio.",
+        "NSCameraUsageDescription": "This app uses the camera to allow you to take photos to create posts.",
+        "NSMicrophoneUsageDescription": "This app uses the microphone to allow you to record audio to create posts.",
         "NSLocationWhenInUseUsageDescription": "This app uses accurate location data to allow users to browse and search for events/venues by proximity.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "This app uses accurate location data to allow users to browse and search for events/venues by proximity.",
         "NSLocationAlwaysUsageDescription": "This app uses accurate location data to allow users to browse and search for events/venues by proximity.",
-        "NSPhotoLibraryUsageDescription": "We need photo library permissions to access your images and videos.",
-        "NSPhotoLibraryAddUsageDescription": "We need photo library permissions to save images and videos.",
-        "NSMotionUsageDescription": "We need motion permissions to detect device movement.",
-        "NSBluetoothPeripheralUsageDescription": "We need Bluetooth permissions to connect to devices.",
-        "NSFileProviderUsageDescription": "We need file provider permissions to manage files on your device.",
-        "NSAppleMusicUsageDescription": "We need access to your media to post images"
+        "NSPhotoLibraryUsageDescription": "This app uses photo library permissions to access images and videos for posts.",
+        "NSPhotoLibraryAddUsageDescription": "This app uses photo library permissions to save images and videos.",
+        "NSFileProviderUsageDescription": "This app uses file provider permissions to access files for posts.",
+        "NSAppleMusicUsageDescription": "This app requires access to Apple Music to access your library for posts."
       },
       "icon": "./assets/ios/appstore.png"
     },

@@ -425,7 +425,7 @@ const styles = StyleSheet.create({
     },
     closeButton: {
         fontSize: 16,
-        color: '#3b54f5',
+        color: '#ae9159',
     },
     item: {
         flex: 1,

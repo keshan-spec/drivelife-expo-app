@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { SafeAreaView, AppState, Alert, Linking, BackHandler, Platform, StatusBar, View, ActivityIndicator, Image } from "react-native";
+import { SafeAreaView, AppState, Alert, Linking, BackHandler, Platform, StatusBar, View, ActivityIndicator, Image, Text, Button, TouchableOpacity } from "react-native";
 import { WebView, WebViewMessageEvent } from 'react-native-webview';
 
 import 'expo-dev-client';
@@ -14,6 +14,15 @@ import { associateDeviceWithUser, GetAllPermissions, maybeSetUserLocation, setUs
 import CreatePost from "./CreatePost/CreatePostPage";
 import { addPost } from "./CreatePost/actions/create-post";
 import { CreatePostProps, WebMessage } from 'types';
+
+
+// get poppin font
+import { useFonts } from 'expo-font';
+
+import { Poppins_500Medium, Poppins_700Bold } from "@expo-google-fonts/poppins";
+import { useNetInfoInstance } from "@react-native-community/netinfo";
+import { OfflineView } from './OfflineView';
+
 
 const URL = 'https://app.mydrivelife.com';
 const options = {
@@ -47,6 +56,9 @@ export default function App() {
 
   // This state saves whether your WebView can go back
   const [webViewcanGoBack, setWebViewcanGoBack] = useState(false);
+
+
+  const { netInfo: { isConnected }, refresh } = useNetInfoInstance();
 
   const setNotifChannels = async () => {
     Notifications.setNotificationHandler({
@@ -318,25 +330,6 @@ export default function App() {
     }
   };
 
-  // const handleBackPress = useCallback(() => {
-  //   try {
-  //     if (webViewRef.current) {
-  //       if (webViewcanGoBack) {
-  //         webViewRef.current.goBack(); // Attempt to go back within the WebView
-  //         return true; // Prevent default behavior (closing the app)
-  //       } else {
-  //         return false; // Default behavior (close the app)
-  //       }
-  //     } else {
-  //       setView('webview');
-  //       return true;
-  //     }
-  //   } catch (error) {
-  //     console.log(`Error going back:`, error);
-  //     return false; // Default behavior (close the app)
-  //   }
-  // }, [webViewcanGoBack, view]);
-
   const handleBackPress = useCallback(() => {
     if (webViewRef.current) {
       webViewRef.current.injectJavaScript(`
@@ -349,6 +342,15 @@ export default function App() {
       return false; // Default behavior (close the app)
     }
   }, []);
+
+  const [fontsLoaded] = useFonts({
+    Poppins_500Medium,
+    Poppins_700Bold
+  });
+
+  if (!fontsLoaded) {
+    return null;
+  }
 
   return (
     <SafeAreaView style={{
@@ -376,43 +378,47 @@ export default function App() {
           position: 'relative',
         }}
       >
-        <WebView
-          ref={webViewRef}
-          onContentProcessDidTerminate={() => {
-            webViewRef.current?.reload();
-          }}
-          overScrollMode='never'
-          startInLoadingState
-          renderLoading={() => {
-            return (
-              <View style={{
-                flex: 1,
-                justifyContent: 'center',
-                alignItems: 'center',
-                height: '100%',
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-              }}>
-                <Image
-                  style={{ width: 20, height: 20 }}
-                  source={require('./assets/loader.gif')}
-                />
-              </View>
-            );
-          }}
-          enableApplePay
-          autoManageStatusBarEnabled
-          source={{ uri: `${URL}${deepLinkUrl ? '?deeplink=' + deepLinkUrl : ''}` }}
-          onMessage={onMessage}
-          onLoadProgress={({ nativeEvent }) => {
-            // This function is called everytime your web view loads a page
-            // and here we change the state of can go back
-            setWebViewcanGoBack(nativeEvent.canGoBack);
-          }}
-        />
+        {isConnected ? (
+          <WebView
+            ref={webViewRef}
+            onContentProcessDidTerminate={() => {
+              webViewRef.current?.reload();
+            }}
+            overScrollMode='never'
+            startInLoadingState
+            renderLoading={() => {
+              return (
+                <View style={{
+                  flex: 1,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  height: '100%',
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                }}>
+                  <Image
+                    style={{ width: 20, height: 20 }}
+                    source={require('./assets/loader.gif')}
+                  />
+                </View>
+              );
+            }}
+            enableApplePay
+            autoManageStatusBarEnabled
+            source={{ uri: `${URL}${deepLinkUrl ? '?deeplink=' + deepLinkUrl : ''}` }}
+            onMessage={onMessage}
+            onLoadProgress={({ nativeEvent }) => {
+              // This function is called everytime your web view loads a page
+              // and here we change the state of can go back
+              setWebViewcanGoBack(nativeEvent.canGoBack);
+            }}
+          />
+        ) : (
+          <OfflineView refresh={refresh} />
+        )}
       </View>
     </SafeAreaView>
   );

@@ -14,6 +14,7 @@ module.exports = ({ config }) => {
             headlessAPIUrl: process.env.HEADLESS_API_URL || 'https://www.carevents.com/uk',
             cloudflareApiToken: process.env.CLOUDFARE_API_KEY,
             cloudflareAccountId: process.env.CLOUDFARE_ACCOUNT_ID,
+            appUrl: process.env.APP_URL || 'https://app.mydrivelife.com',
         }
     };
 };

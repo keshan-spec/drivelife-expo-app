@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { SafeAreaView, AppState, Alert, Linking, BackHandler, Platform, StatusBar, View, ActivityIndicator, Image, Text, Button, TouchableOpacity } from "react-native";
+import { SafeAreaView, AppState, Alert, Linking, BackHandler, Platform, StatusBar, View, Image } from "react-native";
 import { WebView, WebViewMessageEvent } from 'react-native-webview';
 
 import 'expo-dev-client';
@@ -23,8 +23,8 @@ import { Poppins_500Medium, Poppins_700Bold } from "@expo-google-fonts/poppins";
 import { useNetInfoInstance } from "@react-native-community/netinfo";
 import { OfflineView } from './OfflineView';
 
+const URL = Constants.expoConfig?.extra?.appUrl || 'https://app.mydrivelife.com';
 
-const URL = 'https://app.mydrivelife.com';
 const options = {
   taskName: 'PostUpload',
   taskTitle: 'Post Upload',

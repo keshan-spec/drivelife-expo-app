@@ -124,16 +124,6 @@ const compressMedia = async (media, type) => {
                     quality: 1,
                     compressionMethod: 'manual',
                     bitrate: 5 * 1000 * 1000,
-                }, async (progress) => {
-                    progress = Math.round(progress * 100);
-
-                    await BackgroundService.updateNotification({
-                        progressBar: {
-                            max: 100,
-                            value: progress,
-                        },
-                        taskDesc: `Compressing video ${progress}%`,
-                    });
                 });
 
                 const {
@@ -272,10 +262,6 @@ const uploadFilesToCloudflare = async (mediaList) => {
 
             // Compress file if needed
             const currentFile = await compressMedia(file, type);
-
-            console.log('Uploading file     > ', JSON.stringify(file, null, 2));
-            console.log('Compressed file    > ', JSON.stringify(currentFile, null, 2));
-
             if (!currentFile) {
                 throw new Error('Failed to compress media');
             }
@@ -347,6 +333,16 @@ const uploadFilesToCloudflare = async (mediaList) => {
             // Update progress
             completeStatusPercent = Math.round(((i + 1) / mediaList.length) * 100);
             console.log(`File ${i + 1}/${mediaList.length} upload complete: ${completeStatusPercent}%`);
+
+
+            await BackgroundService.updateNotification({
+                progressBar: {
+                    max: 100,
+                    value: completeStatusPercent,
+                },
+                taskTitle: 'Uploading media files',
+                taskDesc: `Uploading ${completeStatusPercent}% completed`,
+            });
         }
 
         return uploadedData;

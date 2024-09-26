@@ -3,7 +3,7 @@ import AWS from 'aws-sdk';
 import RNFS from 'react-native-fs';
 import uuid from 'react-native-uuid';
 import BackgroundService from 'react-native-background-actions';
-import { getImageMetaData, getVideoMetaData, Image } from 'react-native-compressor';
+import { getImageMetaData, getVideoMetaData, Image, Video } from 'react-native-compressor';
 import RNVideoHelper from 'react-native-video-helper';
 
 import { Buffer } from "buffer";
@@ -75,56 +75,88 @@ const completeMultipartUpload = async (bucketName, fileName, uploadId, parts) =>
 };
 
 const compressMedia = async (media, type) => {
-    if (type === 'image') {
-        const compressedImage = await Image.compress(media.uri, {
-            quality: 1,
-        });
-        // const compressedImage = media.uri;
+    const fileName = uuid.v4(); // Encode URI to handle spaces and special characters
+    const encodedUri = media.uri;
 
-        const {
-            ImageHeight,
-            ImageWidth,
-            size,
-            extension
-        } = await getImageMetaData(compressedImage);
+    try {
+        switch (type) {
+            case 'image':
+                const compressedImage = await Image.compress(encodedUri, {
+                    quality: 1,
+                });
 
-        return {
-            uri: compressedImage,
-            height: ImageHeight,
-            width: ImageWidth,
-            fileSize: size,
-            filename: `${uuid.v4()}.${extension}`,
-        };
-    } else if (type === 'video') {
-        // check if the video is over 10MB
-        if (media.fileSize < MIN_COMPRESSION_SIZE) {
-            return {
-                ...media,
-                filename: `${uuid.v4()}.mp4`,
-            };
+                const {
+                    ImageHeight,
+                    ImageWidth,
+                    size: imageSize,
+                    extension: imageExtension
+                } = await getImageMetaData(compressedImage);
+
+                return {
+                    uri: compressedImage,
+                    height: ImageHeight,
+                    width: ImageWidth,
+                    fileSize: imageSize,
+                    filename: `${fileName}.${imageExtension}`,
+                };
+            case 'video':
+                // if video is less than 20MB, don't compress
+                const videoSize = await RNFS.stat(encodedUri);
+
+                if (videoSize.size < MIN_COMPRESSION_SIZE) {
+                    const {
+                        height,
+                        width,
+                        extension
+                    } = await getVideoMetaData(encodedUri);
+
+                    return {
+                        uri: encodedUri,
+                        height,
+                        width,
+                        fileSize: videoSize.size,
+                        filename: `${fileName}.${extension}`,
+                    };
+                }
+
+
+                const compressedVideo = await Video.compress(encodedUri, {
+                    quality: 1,
+                    compressionMethod: 'manual',
+                    bitrate: 5 * 1000 * 1000,
+                }, async (progress) => {
+                    progress = Math.round(progress * 100);
+
+                    await BackgroundService.updateNotification({
+                        progressBar: {
+                            max: 100,
+                            value: progress,
+                        },
+                        taskDesc: `Compressing video ${progress}%`,
+                    });
+                });
+
+                const {
+                    size,
+                    height,
+                    width,
+                    extension
+                } = await getVideoMetaData(compressedVideo);
+
+                return {
+                    uri: `file://${compressedVideo}`,
+                    height,
+                    width,
+                    fileSize: size,
+                    filename: `${fileName}.${extension}`
+                };
+            default:
+                return null;
         }
-
-        const compressedVideo = await RNVideoHelper.compress(media.uri, {
-            quality: 'high',
-        });
-
-        const {
-            size,
-            height,
-            width,
-            extension
-        } = await getVideoMetaData(compressedVideo);
-
-        return {
-            uri: compressedVideo,
-            height,
-            width,
-            fileSize: size,
-            filename: `${uuid.v4()}.${extension}`
-        };
+    } catch (error) {
+        console.error('Error during media compression:', error);
+        throw error;
     }
-
-    return null;
 };
 
 const uploadFileInChunks = async (user_id, mediaList) => {
@@ -226,6 +258,7 @@ const uploadFilesToCloudflare = async (mediaList) => {
     const CLOUDFLARE_API_TOKEN = Constants.expoConfig.extra.cloudflareApiToken;
 
     const CLOUDFLARE_UPLOAD_URL = `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/images/v1`;
+    const CLOUDFLARE_STREAM_URL = `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/stream`;
 
     try {
         const uploadedData = [];
@@ -233,11 +266,16 @@ const uploadFilesToCloudflare = async (mediaList) => {
 
         for (let i = 0; i < mediaList.length; i++) {
             const file = mediaList[i];
+
             const type = file.type.split('/')[0];
             const mime = file.type;
 
-            // Compress file if needed (similar to your current setup)
+            // Compress file if needed
             const currentFile = await compressMedia(file, type);
+
+            console.log('Uploading file     > ', JSON.stringify(file, null, 2));
+            console.log('Compressed file    > ', JSON.stringify(currentFile, null, 2));
+
             if (!currentFile) {
                 throw new Error('Failed to compress media');
             }
@@ -246,18 +284,32 @@ const uploadFilesToCloudflare = async (mediaList) => {
             const fileName = currentFile.filename;
             const fileSize = currentFile.fileSize;
 
-            // Read the file as base64
-            const fileData = await RNFS.readFile(filePath, 'base64');
-            const formData = new FormData();
-            formData.append('file', {
-                uri: `data:${mime};base64,${fileData}`,
-                name: fileName,
-                type: mime
-            });
+            let formData;
+            let uploadUrl = '';
 
-            // Make the POST request to upload the file
-            const request = await fetch(CLOUDFLARE_UPLOAD_URL, {
-                method: "POST",
+            if (type === 'image') {
+                // Read the file as base64 for image uploads
+                const fileData = await RNFS.readFile(filePath, 'base64');
+                formData = new FormData();
+                formData.append('file', {
+                    uri: `data:${mime};base64,${fileData}`,
+                    name: fileName,
+                    type: mime
+                });
+                uploadUrl = CLOUDFLARE_UPLOAD_URL;
+            } else if (type === 'video') {
+                formData = new FormData();
+                formData.append('file', {
+                    uri: filePath,
+                    name: fileName,
+                    type: mime
+                });
+                uploadUrl = CLOUDFLARE_STREAM_URL;
+            }
+
+            // Upload the file
+            const request = await fetch(uploadUrl, {
+                method: 'POST',
                 body: formData,
                 headers: {
                     'Authorization': `Bearer ${CLOUDFLARE_API_TOKEN}`,
@@ -268,14 +320,22 @@ const uploadFilesToCloudflare = async (mediaList) => {
             const response = await request.json();
 
             if (!response || response.success !== true) {
-                throw new Error(response.errors[0].message || 'Failed to upload file to Cloudflare');
+                throw new Error(response.errors ? response.errors[0].message : 'Failed to upload file to Cloudflare');
             }
 
-            if (response && response.success === true) {
-                const { id } = response.result;
+            if (response.success === true) {
+                let mediaId = '';
+
+                if (type === 'image') {
+                    const { id } = response.result;
+                    mediaId = id;
+                } else if (type === 'video') {
+                    const { uid } = response.result;
+                    mediaId = uid;
+                }
 
                 uploadedData.push({
-                    url: id,
+                    url: mediaId,
                     mime,
                     type,
                     width: currentFile.width,
@@ -292,7 +352,6 @@ const uploadFilesToCloudflare = async (mediaList) => {
         return uploadedData;
     } catch (error) {
         console.error('Error uploading files to Cloudflare:', error);
-        await BackgroundService.stop();
         throw error;
     }
 };
@@ -353,6 +412,8 @@ export const addPost = async ({
 
         return data;
     } catch (e) {
+        console.log("Error creating post", e);
+
         await addNotification("Failed to create post", e.message || "Failed to create post");
         await BackgroundService.stop();
         throw new Error(`Failed to create post: ${e.message}`);

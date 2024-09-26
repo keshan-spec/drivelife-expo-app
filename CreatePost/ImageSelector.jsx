@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Image, FlatList, StyleSheet, Dimensions, SafeAreaView, TouchableOpacity, Text } from 'react-native';
+import { View, Image, FlatList, StyleSheet, Dimensions, SafeAreaView, TouchableOpacity, Text, ActivityIndicator } from 'react-native';
 import * as MediaLibrary from 'expo-media-library';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 // https://icons.expo.fyi/Index
@@ -119,7 +119,7 @@ const ImageSelector = ({ navigation, onClose }) => {
 
             const gallery = await MediaLibrary.getAssetsAsync({
                 first: 20 * page,
-                mediaType: ['photo'],
+                mediaType: ['photo', 'video'],
                 sortBy: ['creationTime'],
             });
 
@@ -216,7 +216,7 @@ const ImageSelector = ({ navigation, onClose }) => {
     const openImagePicker = () => {
         launchImageLibrary({
             title: 'Select Images',
-            mediaType: 'photo',
+            mediaType: 'mixed',
             presentationStyle: 'formSheet',
             selectionLimit: isMultiSelect ? 5 : 1,
             includeExtra: true,
@@ -308,7 +308,7 @@ const ImageSelector = ({ navigation, onClose }) => {
                         <MaterialCommunityIcons name="chevron-down" size={18} color="white" />
                     </TouchableOpacity>
 
-                    {/* <View style={{
+                    <View style={{
                         display: 'flex',
                         flexDirection: 'row',
                         justifyContent: 'center',
@@ -331,10 +331,10 @@ const ImageSelector = ({ navigation, onClose }) => {
                                 )}
                         </TouchableOpacity>
 
-                        <TouchableOpacity onPress={openCamera} style={styles.multiSelectBtn}>
+                        {/* <TouchableOpacity onPress={openCamera} style={styles.multiSelectBtn}>
                             <Ionicons name="camera-outline" size={18} color="white" />
-                        </TouchableOpacity>
-                    </View> */}
+                        </TouchableOpacity> */}
+                    </View>
                 </View>
                 <PhotoGrid
                     photos={photos}
@@ -343,6 +343,12 @@ const ImageSelector = ({ navigation, onClose }) => {
                     selectedPhotos={selectedPhotos}
                     isMultiSelect={isMultiSelect}
                 />
+
+                {/* {(hasNextPage && loading) && <ActivityIndicator style={{
+                    // flex: 1,
+                    backgroundColor: '#000',
+                    height: 70,
+                }} size="small" color="#fff" backgroundColor="#000" />} */}
             </View>
         </SafeAreaView>
     );

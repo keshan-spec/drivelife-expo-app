@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { Modal, View, Text, StyleSheet, Animated, PanResponder, TouchableOpacity, TextInput } from 'react-native';
+import { Modal, View, Text, StyleSheet, Animated, PanResponder, TouchableOpacity, TextInput, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { fetchTaggableEntites } from './actions/create-post';
@@ -135,6 +135,23 @@ const BottomSheet = ({ visible, onClose, title, activePanel, onTag }) => {
                                         marginTop: 10,
                                     }}
                                     onPress={() => {
+                                        // check if the searchQ is already tagged
+                                        const isTagged = taggedEntities.find((entity) =>
+                                            entity.label.replace(/\s+/g, '').toLowerCase() === searchQ.replace(/\s+/g, '').toLowerCase() &&
+                                            entity.index === activeImageIndex
+                                        );
+
+                                        if (isTagged) {
+                                            // alert
+                                            Alert.alert('Tag already exists', 'This tag is already added to the image', [
+                                                {
+                                                    text: 'OK',
+                                                    onPress: () => { },
+                                                },
+                                            ]);
+                                            return;
+                                        }
+
                                         onTag([{
                                             x: 1,
                                             y: 1,

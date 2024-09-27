@@ -406,6 +406,8 @@ PODS:
   - react-native-image-picker (7.1.2):
     - RCT-Folly (= 2021.07.22.00)
     - React-Core
+  - react-native-netinfo (11.4.0):
+    - React-Core
   - react-native-onesignal (4.5.1):
     - OneSignalXCFramework (= 3.12.4)
     - React (< 1.0.0, >= 0.13.0)
@@ -595,6 +597,7 @@ DEPENDENCIES:
   - react-native-compressor (from `../node_modules/react-native-compressor`)
   - "react-native-geolocation (from `../node_modules/@react-native-community/geolocation`)"
   - react-native-image-picker (from `../node_modules/react-native-image-picker`)
+  - "react-native-netinfo (from `../node_modules/@react-native-community/netinfo`)"
   - react-native-onesignal (from `../node_modules/react-native-onesignal`)
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
   - react-native-video-helper (from `../node_modules/react-native-video-helper`)
@@ -723,6 +726,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/@react-native-community/geolocation"
   react-native-image-picker:
     :path: "../node_modules/react-native-image-picker"
+  react-native-netinfo:
+    :path: "../node_modules/@react-native-community/netinfo"
   react-native-onesignal:
     :path: "../node_modules/react-native-onesignal"
   react-native-safe-area-context:
@@ -824,6 +829,7 @@ SPEC CHECKSUMS:
   react-native-compressor: a94c3053b5e5d1d7a8e35dd04803130d87adfa43
   react-native-geolocation: 0f7fe8a4c2de477e278b0365cce27d089a8c5903
   react-native-image-picker: 51fdb07f7ef722988c8a219e1416153760a25e4d
+  react-native-netinfo: e8e9cf28ede012e47603c9b35b2fa5b19b7bd71d
   react-native-onesignal: 7bd44dbd031d8d57110c0203836ffc37ddead526
   react-native-safe-area-context: 39c2d8be3328df5d437ac1700f4f3a4f75716acc
   react-native-video-helper: f5e1ccf46c0a1436c2b3c3891feeada00cf0d4fe
@@ -849,6 +855,6 @@ SPEC CHECKSUMS:
   UMAppLoader: d1cd37524ea948f9e695722994496784a6d6213c
   Yoga: e71803b4c1fff832ccf9b92541e00f9b873119b9
 
-PODFILE CHECKSUM: bb78c97bcb1a0da213ab79753391f5ee0a2f3043
+PODFILE CHECKSUM: aee4c0a96a774af0b2a20d1ebd2b8cdc9188af23
 
 COCOAPODS: 1.15.2

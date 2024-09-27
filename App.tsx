@@ -16,6 +16,9 @@ import { addPost } from "./CreatePost/actions/create-post";
 import { CreatePostProps, WebMessage } from 'types';
 import ProgressNotification from './ProgressNotif';
 
+import { useNetInfoInstance } from "@react-native-community/netinfo";
+import { OfflineView } from './OfflineView';
+
 const URL = 'https://app.mydrivelife.com';
 const options = {
   taskName: 'PostUpload',
@@ -51,6 +54,8 @@ export default function App() {
 
   const [isPostUploading, setIsPostUploading] = useState(false);
   const [postMedia, setPostMedia] = useState<string | null>(null);
+
+  const { netInfo: { isConnected }, refresh } = useNetInfoInstance();
 
   const setNotifChannels = async () => {
     Notifications.setNotificationHandler({
@@ -415,58 +420,62 @@ export default function App() {
           position: 'relative',
         }}
       >
-        <WebView
-          ref={webViewRef}
-          onContentProcessDidTerminate={() => {
-            // reintialize the webview
-            webViewRef.current?.reload();
-          }}
-          startInLoadingState
-          renderLoading={() => (
-            <View style={{
-              flex: 1,
-              justifyContent: 'center',
-              alignItems: 'center',
-              height: '100%',
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-            }}>
-              <Image
-                source={require('./assets/loader.gif')}
-                style={{
-                  width: 20,
-                  height: 20,
-                }}
-              />
-            </View>
-          )}
-          mediaCapturePermissionGrantType='grant'
-          bounces={false}
-          contentMode='mobile'
-          overScrollMode='never'
-          onShouldStartLoadWithRequest={event => {
-            // if url is not from the app, open it in the browser
-            if (!event.url.startsWith(URL)) {
-              Linking.openURL(event.url);
-              return false;
-            }
+        {isConnected ? (
+          <WebView
+            ref={webViewRef}
+            onContentProcessDidTerminate={() => {
+              // reintialize the webview
+              webViewRef.current?.reload();
+            }}
+            startInLoadingState
+            renderLoading={() => (
+              <View style={{
+                flex: 1,
+                justifyContent: 'center',
+                alignItems: 'center',
+                height: '100%',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+              }}>
+                <Image
+                  source={require('./assets/loader.gif')}
+                  style={{
+                    width: 20,
+                    height: 20,
+                  }}
+                />
+              </View>
+            )}
+            mediaCapturePermissionGrantType='grant'
+            bounces={false}
+            contentMode='mobile'
+            overScrollMode='never'
+            onShouldStartLoadWithRequest={event => {
+              // if url is not from the app, open it in the browser
+              if (!event.url.startsWith(URL)) {
+                Linking.openURL(event.url);
+                return false;
+              }
 
-            return true;
-          }}
-          javaScriptEnabled
-          autoManageStatusBarEnabled
-          allowsInlineMediaPlayback
-          source={{ uri: `${URL}${deepLinkUrl ? '?deeplink=' + deepLinkUrl : ''}` }}
-          onMessage={onMessage}
-          onLoadProgress={({ nativeEvent }) => {
-            // This function is called everytime your web view loads a page
-            // and here we change the state of can go back
-            setWebViewcanGoBack(nativeEvent.canGoBack);
-          }}
-        />
+              return true;
+            }}
+            cacheEnabled
+            javaScriptEnabled
+            allowsInlineMediaPlayback
+            source={{ uri: `${URL}${deepLinkUrl ? '?deeplink=' + deepLinkUrl : ''}` }}
+            onMessage={onMessage}
+            onLoadProgress={({ nativeEvent }) => {
+              // This function is called everytime your web view loads a page
+              // and here we change the state of can go back
+              setWebViewcanGoBack(nativeEvent.canGoBack);
+            }}
+          />
+        ) : (
+          <OfflineView refresh={refresh} />
+        )}
       </View>
     </View>
   );

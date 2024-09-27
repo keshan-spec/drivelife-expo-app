@@ -10,10 +10,11 @@ import { usePostProvider } from './ContextProvider';
 const BottomSheet = ({ visible, onClose, title, activePanel, onTag }) => {
     const translateY = useRef(new Animated.Value(500)).current;
 
-    const { taggedEntities } = usePostProvider();
+    const { taggedEntities, activeImageIndex } = usePostProvider();
 
     const [taggableEntities, setTaggableEntities] = useState([]);
     const [searching, setSearching] = useState(false);
+    const [searchQ, setSearchQ] = useState('');
 
 
     const panResponder = useRef(
@@ -70,7 +71,7 @@ const BottomSheet = ({ visible, onClose, title, activePanel, onTag }) => {
 
         try {
             setSearching(true);
-            const response = await fetchTaggableEntites(1, text, taggedEntities, activePanel === 'vehicles');
+            const response = await fetchTaggableEntites(1, text, taggedEntities, activePanel);
             setTaggableEntities(response);
             setSearching(false);
         } catch (error) {
@@ -80,10 +81,18 @@ const BottomSheet = ({ visible, onClose, title, activePanel, onTag }) => {
     }, 300), [activePanel]);
 
     const onTextChange = (text) => {
+        setSearchQ(text);
+
+        if (activePanel === 'car') {
+            return;
+        }
+
         if (!text) {
             setTaggableEntities([]);
             return;
         }
+
+
         fetchTaggableEntitiesDebounced(text);
     };
 
@@ -115,6 +124,40 @@ const BottomSheet = ({ visible, onClose, title, activePanel, onTag }) => {
                                 onChange={(e) => onTextChange(e.nativeEvent.text)}
                                 style={styles.input}
                             />
+
+                            {activePanel === 'car' && (
+                                <TouchableOpacity
+                                    style={{
+                                        backgroundColor: '#ae9159',
+                                        paddingHorizontal: 12,
+                                        paddingVertical: 8,
+                                        borderRadius: 4,
+                                        marginTop: 10,
+                                    }}
+                                    onPress={() => {
+                                        onTag([{
+                                            x: 1,
+                                            y: 1,
+                                            index: activeImageIndex,
+                                            label: searchQ,
+                                            registration: searchQ,
+                                            type: 'car',
+                                        }]);
+                                        onClose();
+                                    }}>
+                                    <Text
+                                        style={{
+                                            color: 'white',
+                                            fontSize: 14,
+                                            textAlign: 'center',
+                                            fontFamily: 'Poppins_600SemiBold',
+                                        }}
+                                    >
+                                        + Add
+                                    </Text>
+                                </TouchableOpacity>
+                            )}
+
                             {searching && <TagSuggestionSkeleton />}
                             <TagSuggestions
                                 data={taggableEntities}
@@ -163,17 +206,16 @@ const styles = StyleSheet.create({
         display: 'flex',
         flexDirection: 'row',
         justifyContent: 'space-between',
-        borderBottomColor: '#ccc',
-        borderBottomWidth: 1,
-        padding: 13,
+        paddingHorizontal: 20,
+        marginTop: 20,
     },
     headerText: {
-        fontSize: 15,
+        fontSize: 17,
         color: 'black',
         display: 'flex',
         flexDirection: 'row',
         alignItems: 'center',
-        fontFamily: 'Poppins_500Medium',
+        fontFamily: 'Poppins_600SemiBold',
     },
     content: {
         fontSize: 16,

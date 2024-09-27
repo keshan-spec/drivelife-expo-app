@@ -7,6 +7,8 @@ export const PostProvider = ({ children }) => {
     const [step, setStep] = useState(0);
     const [taggedEntities, setTaggedEntities] = useState([]);
     const [caption, setCaption] = useState('');
+    const [activeImageIndex, setActiveImageIndex] = useState(0);
+
 
     useEffect(() => {
         if (step === 0) {
@@ -20,7 +22,7 @@ export const PostProvider = ({ children }) => {
     };
 
     return (
-        <PostContext.Provider value={{ caption, setCaption, selectedPhotos, setSelectedPhotos, step, setStep, updateSelectedImage, taggedEntities, setTaggedEntities }}>
+        <PostContext.Provider value={{ activeImageIndex, setActiveImageIndex, caption, setCaption, selectedPhotos, setSelectedPhotos, step, setStep, updateSelectedImage, taggedEntities, setTaggedEntities }}>
             {children}
         </PostContext.Provider>
     );

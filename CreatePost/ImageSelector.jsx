@@ -119,7 +119,7 @@ const ImageSelector = ({ navigation, onClose }) => {
 
             const gallery = await MediaLibrary.getAssetsAsync({
                 first: 20 * page,
-                mediaType: ['photo', 'video'],
+                mediaType: ['photo'],
                 sortBy: ['creationTime'],
             });
 
@@ -216,7 +216,7 @@ const ImageSelector = ({ navigation, onClose }) => {
     const openImagePicker = () => {
         launchImageLibrary({
             title: 'Select Images',
-            mediaType: 'mixed',
+            mediaType: 'photo',
             presentationStyle: 'formSheet',
             selectionLimit: isMultiSelect ? 5 : 1,
             includeExtra: true,
@@ -308,7 +308,7 @@ const ImageSelector = ({ navigation, onClose }) => {
                         <MaterialCommunityIcons name="chevron-down" size={18} color="white" />
                     </TouchableOpacity>
 
-                    <View style={{
+                    {/* <View style={{
                         display: 'flex',
                         flexDirection: 'row',
                         justifyContent: 'center',
@@ -331,10 +331,10 @@ const ImageSelector = ({ navigation, onClose }) => {
                                 )}
                         </TouchableOpacity>
 
-                        {/* <TouchableOpacity onPress={openCamera} style={styles.multiSelectBtn}>
+                        <TouchableOpacity onPress={openCamera} style={styles.multiSelectBtn}>
                             <Ionicons name="camera-outline" size={18} color="white" />
-                        </TouchableOpacity> */}
-                    </View>
+                        </TouchableOpacity>
+                    </View> */}
                 </View>
                 <PhotoGrid
                     photos={photos}

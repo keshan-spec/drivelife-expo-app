@@ -18,4 +18,7 @@ export interface TagEntity {
     type: string;
     entity_id: string;
     image: string;
+    start_date?: string;
+    end_date?: string;
+    location?: string;
 }

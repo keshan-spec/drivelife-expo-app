@@ -16,10 +16,19 @@ import { usePostProvider } from './ContextProvider';
 
 const TaggedEntity = ({ label, type, onRemove }) => {
     return (
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginVertical: 8, borderBottomWidth: 1, borderBottomColor: '#ae9159', padding: 8 }}>
-            <Text style={styles.textSmall}>{label}</Text>
+        <View style={{
+            flexDirection: 'row',
+            gap: 8,
+            padding: 7,
+            backgroundColor: '#ae9159',
+            margin: 4,
+            borderRadius: 8,
+        }}>
+            <Text style={[styles.textSmall, {
+                color: '#fff',
+            }]}>{label}</Text>
             <TouchableOpacity onPress={onRemove}>
-                <MaterialCommunityIcons name="close" size={16} color="#ae9159" />
+                <MaterialCommunityIcons name="close" size={16} color="#fff" />
             </TouchableOpacity>
         </View>
     );
@@ -30,7 +39,7 @@ function Collapsible() {
     const [showSheet, setShowSheet] = useState(false);
     const [activePanel, setActivePanel] = useState('users');
 
-    const { taggedEntities, setTaggedEntities } = usePostProvider();
+    const { taggedEntities, setTaggedEntities, activeImageIndex } = usePostProvider();
 
     const toggleSheet = useCallback(() => {
         setShowSheet(!showSheet);
@@ -38,14 +47,8 @@ function Collapsible() {
 
     const renderTagUsers = () => {
         return (
-            <View>
-                <TouchableOpacity style={styles.shareButton} onPress={() => {
-                    setActivePanel('users');
-                    toggleSheet();
-                }}>
-                    <Text style={styles.shareButtonText}>+ Add</Text>
-                </TouchableOpacity>
-                {taggedEntities.filter((entity) => entity.type === 'user').map((entity, index) => (
+            <View style={styles.tagBadgeContainer}>
+                {taggedEntities.filter((entity) => entity.type === 'user' && entity.index == activeImageIndex).map((entity, index) => (
                     <TaggedEntity
                         key={index}
                         label={entity.label}
@@ -61,15 +64,25 @@ function Collapsible() {
 
     const renderTagVehicles = () => {
         return (
-            <View>
-                <TouchableOpacity style={styles.shareButton} onPress={() => {
-                    setActivePanel('vehicles');
-                    toggleSheet();
-                }}>
-                    <Text style={styles.shareButtonText}>+ Add</Text>
-                </TouchableOpacity>
+            <View style={styles.tagBadgeContainer}>
+                {taggedEntities.filter((entity) => entity.type === 'car' && entity.index == activeImageIndex).map((entity, index) => (
+                    <TaggedEntity
+                        key={index}
+                        label={entity.label}
+                        type={entity.type}
+                        onRemove={() => {
+                            setTaggedEntities(taggedEntities.filter((_, i) => i !== index));
+                        }}
+                    />
+                ))}
+            </View>
+        );
+    };
 
-                {taggedEntities.filter((entity) => entity.type === 'car').map((entity, index) => (
+    const renderTagEvents = () => {
+        return (
+            <View style={styles.tagBadgeContainer}>
+                {taggedEntities.filter((entity) => entity.type === 'event' && entity.index == activeImageIndex).map((entity, index) => (
                     <TaggedEntity
                         key={index}
                         label={entity.label}
@@ -90,9 +103,14 @@ function Collapsible() {
             content: renderTagUsers()
         },
         {
-            title: 'Tag Vehicle',
+            title: 'Tag Registrations',
             type: 'car',
             content: renderTagVehicles()
+        },
+        {
+            title: 'Tag Events',
+            type: 'events',
+            content: renderTagEvents()
         },
     ];
 
@@ -100,39 +118,43 @@ function Collapsible() {
         return taggedEntities.filter((entity) => entity.type === type).length;
     };
 
-    function renderHeader(section, _, isActive) {
+    function renderHeader(section, activePanel) {
         return (
             <View style={styles.accordHeader}>
                 <Text style={styles.accordTitle}>{section.title}</Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <View style={{
+
+                {renderContent(section)}
+
+                <TouchableOpacity onPress={() => {
+                    setActivePanel(activePanel);
+                    toggleSheet();
+                }}
+                    style={{
                         display: 'flex',
+                        flexDirection: 'row',
                         justifyContent: 'center',
                         alignItems: 'center',
-                        width: 20,
-                        height: 20,
-                        textAlign: 'center',
-                        textAlignVertical: 'center', // Android-specific centering
-                        lineHeight: 20, // Ensure text is vertically centered
-                        borderRadius: 50, // Half of the width/height to make it rounded
-                        backgroundColor: taggedEntities.filter((entity) => entity.type === section.type).length ? '#ae9159' : '#bbb',
-                    }}>
-                        <Text style={{
-                            fontSize: 12,
-                            color: 'white',
+                        height: 40,
+                        backgroundColor: 'white',
+                        borderStyle: 'solid',
+                        borderWidth: 1.5,
+                        borderColor: '#ae9159',
+                        borderRadius: 8,
+                        marginTop: 8,
+                    }}
+                >
+                    <Text
+                        style={{
+                            color: '#ae9159',
                             fontFamily: 'Poppins_500Medium',
-                        }}>
-                            {renderCount(section.type)}
-                        </Text>
-                    </View>
-                    <MaterialCommunityIcons name={isActive ? 'chevron-up' : 'chevron-down'} size={20} color="#bbb" />
-                </View>
+                            fontSize: 13,
+                        }}>+ Add</Text>
+                </TouchableOpacity>
             </View>
         );
     };
 
-
-    function renderContent(section, _, isActive) {
+    function renderContent(section) {
         return (
             <View style={styles.accordBody}>
                 {section.content}
@@ -140,22 +162,31 @@ function Collapsible() {
         );
     }
 
+    const getTitle = () => {
+        switch (activePanel) {
+            case 'users':
+                return 'Tag Users';
+            case 'car':
+                return 'Tag Registrations';
+            case 'events':
+                return 'Tag Events';
+            default:
+                return 'Tag Users';
+        }
+    };
 
     return (
-        <SafeAreaView style={styles.container}>
-            <ScrollView
-                contentInsetAdjustmentBehavior="automatic"
-                style={styles.container}>
-                <Accordion
-                    align="bottom"
-                    sections={sections}
-                    activeSections={activeSections}
-                    renderHeader={renderHeader}
-                    renderContent={renderContent}
-                    onChange={(sections) => setActiveSections(sections)}
-                    sectionContainerStyle={styles.accordContainer}
-                />
+        <View style={styles.container}>
+            <ScrollView style={styles.container}>
+                <View style={styles.accordContainer}>
+                    {sections.map((section, index) => (
+                        <View key={index}>
+                            {renderHeader(section, section.type)}
+                        </View>
+                    ))}
+                </View>
             </ScrollView>
+
             <BottomSheet
                 visible={showSheet}
                 onClose={() => {
@@ -163,18 +194,25 @@ function Collapsible() {
                 }}
                 activePanel={activePanel}
                 onTag={(data) => {
-                    toggleSheet();
+                    // toggleSheet();
                     setTaggedEntities([...taggedEntities, ...data]);
                 }}
-                title={activePanel === 'users' ? 'Tag Users' : 'Tag Vehicles'}
+                title={getTitle()}
             />
-        </SafeAreaView>
+        </View>
     );
 }
 
 export default Collapsible;
 
 const styles = StyleSheet.create({
+    tagBadgeContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        width: '100%',
+        justifyContent: 'flex-start',
+        alignItems: 'center',
+    },
     shareButton: {
         backgroundColor: '#ae9159',
         padding: 8,
@@ -189,7 +227,8 @@ const styles = StyleSheet.create({
         fontFamily: 'Poppins_500Medium',
     },
     container: {
-        // flex: 1,
+        flex: 1,
+        marginTop: 5,
         backgroundColor: 'white',
         fontFamily: 'Poppins-Bold',
     },
@@ -197,26 +236,25 @@ const styles = StyleSheet.create({
     },
     accordHeader: {
         flex: 1,
-        justifyContent: 'space-between',
         backgroundColor: 'white',
-        flexDirection: 'row',
-        alignItems: 'center',
+        flexDirection: 'column',
         padding: 12,
         borderTopWidth: .5,
         borderBottomWidth: 1,
         borderColor: '#E1E1E1',
     },
     accordTitle: {
-        fontSize: 14,
-        fontFamily: 'Poppins_500Medium',
+        fontSize: 18,
+        fontFamily: 'Poppins_600SemiBold',
     },
     accordBody: {
-        padding: 12,
+        marginTop: 7,
+        width: '100%',
         height: 'auto',
     },
     textSmall: {
         fontFamily: 'Poppins_500Medium',
-        fontSize: 14
+        fontSize: 13
     },
     seperator: {
         height: 12

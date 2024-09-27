@@ -10,7 +10,7 @@ import { Dimensions, StyleSheet } from 'react-native';
 // get poppin font
 import { useFonts } from 'expo-font';
 
-import { Poppins_500Medium, Poppins_700Bold } from "@expo-google-fonts/poppins";
+import { Poppins_500Medium, Poppins_700Bold, Poppins_600SemiBold } from "@expo-google-fonts/poppins";
 import SharePostStep1 from './SharePanel';
 
 const numColumns = 3;
@@ -24,7 +24,8 @@ const CreatePost = ({
 }) => {
     const [fontsLoaded] = useFonts({
         Poppins_500Medium,
-        Poppins_700Bold
+        Poppins_700Bold,
+        Poppins_600SemiBold,
     });
 
     if (!fontsLoaded) {

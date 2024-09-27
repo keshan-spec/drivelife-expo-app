@@ -1,34 +1,32 @@
-import { View, Text, Image, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, TouchableWithoutFeedback, FlatList, Dimensions, ActivityIndicator, KeyboardAvoidingView } from 'react-native';
+import { View, Text, Image, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, TouchableWithoutFeedback, FlatList, Dimensions, ActivityIndicator } from 'react-native';
 import { usePostProvider } from './ContextProvider';
 
 import { Ionicons } from '@expo/vector-icons';
 import Collapsible from './Collapsible';
 import { useCallback, useMemo, useState } from 'react';
-import EditImage from './Components/EditImage';
-import { KeyboardAccessoryView } from 'react-native-keyboard-accessory'
 
-
-const SharePost = ({ navigation, onComplete }) => {
-    const { selectedPhotos, setStep, taggedEntities, caption } = usePostProvider();
-    const [loading, setLoading] = useState(false);
+const SharePostTagPanel = ({ navigation, onComplete }) => {
+    const { selectedPhotos, setStep, taggedEntities, updateSelectedImage, caption, activeImageIndex, setActiveImageIndex } = usePostProvider();
     const [error, setError] = useState(null);
 
     const isVideo = (media) => media.type.startsWith('video') ? true : false;
 
     const renderSelectedPhotos = useCallback(() => {
         if (selectedPhotos.length === 1) {
-            if (isVideo(selectedPhotos[0])) {
-                return <Image
-                    source={{ uri: selectedPhotos[0].uri }}
-                    style={styles.selectedImage}
-                />;
-            }
+            // if (isVideo(selectedPhotos[0])) {
+            //     return <Image
+            //         source={{ uri: selectedPhotos[0].uri }}
+            //         style={styles.selectedImage}
+            //     />;
+            // }
 
             return (
-                <Image
-                    source={{ uri: selectedPhotos[0].uri }}
-                    style={styles.selectedImage}
-                />
+                <TouchableWithoutFeedback onPress={() => setActiveImageIndex(0)}>
+                    <Image
+                        source={{ uri: selectedPhotos[0].uri }}
+                        style={[styles.selectedImage, styles.activeImage]}
+                    />
+                </TouchableWithoutFeedback>
             );
         }
 
@@ -37,41 +35,37 @@ const SharePost = ({ navigation, onComplete }) => {
                 data={selectedPhotos}
                 horizontal
                 pagingEnabled
+                style={{
+                    padding: 10,
+                    paddingVertical: 15,
+                    width: '100%',
+                }}
                 ItemSeparatorComponent={() => <View style={{ width: 10 }} />}
                 keyExtractor={(item, index) => index.toString()}
                 renderItem={({ index, item }) => {
-                    if (isVideo(item)) {
-                        // return <CustomVideo video={item} key={index} />;
-                        return <Image
-                            source={{ uri: item.uri }}
-                            style={styles.selectedImage}
-                        />;
-                    }
-
+                    // if (isVideo(item)) {
+                    // return <CustomVideo video={item} key={index} />;
                     return (
-                        <TouchableWithoutFeedback
-                            onPress={() => setEditImageIdx(index)}
-                            key={index}
-                        >
+                        <TouchableWithoutFeedback onPress={() => {
+                            setActiveImageIndex(index);
+                        }}>
                             <Image
                                 source={{ uri: item.uri }}
-                                style={styles.selectedImage}
+                                style={[styles.selectedImage, index === activeImageIndex ? styles.activeImage : null,
+                                    // if last image, add right padding
+                                    // index === selectedPhotos.length ? { marginRight: 10 } : null
+                                ]}
                             />
                         </TouchableWithoutFeedback>
                     );
+                    // }
                 }}
             />
         );
-    }, [selectedPhotos]);
+    }, [selectedPhotos, activeImageIndex]);
 
     const onShare = async () => {
-        if (loading) {
-            return;
-        }
-
-        setLoading(true);
         try {
-            setLoading(false);
             onComplete({
                 media: selectedPhotos,
                 caption,
@@ -81,7 +75,6 @@ const SharePost = ({ navigation, onComplete }) => {
         } catch (error) {
             console.log('Error sharing post:', error);
             setError('An error occurred while sharing your post. Please try again later.');
-            setLoading(false);
         }
     };
 
@@ -90,6 +83,7 @@ const SharePost = ({ navigation, onComplete }) => {
             <ScrollView contentContainerStyle={styles.scrollView}>
                 <View style={styles.header}>
                     <TouchableOpacity onPress={() => {
+                        setStep(0);
                         navigation.goBack();
                     }}>
                         <View style={{
@@ -98,9 +92,14 @@ const SharePost = ({ navigation, onComplete }) => {
                         }}>
                             <Ionicons name="chevron-back" size={20} color="black" />
                             <Text style={[styles.headerText, styles.poppinsFont]}>
-                                {` `} Back
+                                {` `}Back
                             </Text>
                         </View>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => {
+                        onShare();
+                    }}>
+                        <Text style={[styles.closeButton, styles.poppinsFont]}>Post</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -109,29 +108,31 @@ const SharePost = ({ navigation, onComplete }) => {
                     display: 'flex',
                     justifyContent: 'center',
                     alignItems: 'center',
-                    // backgroundColor: '#151617',
-                    height: 350,
-                    padding: 10,
+                    backgroundColor: '#DCDCDC',
+                    height: 180,
+
                 }}>
                     {renderSelectedPhotos()}
                 </View>
+
                 <Collapsible />
-
-                {(error && !loading) && (
-                    <View style={[styles.errorMessage]}>
-                        <Text style={{ color: 'red', fontFamily: 'Poppins_500Medium', textAlign: 'center', maxWidth: 300 }}>{error}</Text>
-                        <TouchableOpacity onPress={() => setError(null)}>
-                            <Ionicons name="close" size={16} color="red" />
-                        </TouchableOpacity>
-                    </View>
-                )}
-
-                {/* Share Button */}
-                <TouchableOpacity style={styles.shareButton} onPress={onShare}>
-                    <Text style={styles.shareButtonText}>Post Now</Text>
-                </TouchableOpacity>
             </ScrollView>
-        </SafeAreaView >
+
+            {/* ERROR */}
+            {(error) && (
+                <View style={[styles.errorMessage]}>
+                    <Text style={{ color: 'red', fontFamily: 'Poppins_500Medium', textAlign: 'center', maxWidth: 300 }}>{error}</Text>
+                    <TouchableOpacity onPress={() => setError(null)}>
+                        <Ionicons name="close" size={16} color="red" />
+                    </TouchableOpacity>
+                </View>
+            )}
+
+            {/* Share Button */}
+            {/* <TouchableOpacity style={styles.shareButton} onPress={onShare}>
+                <Text style={styles.shareButtonText}>Post Now</Text>
+            </TouchableOpacity> */}
+        </SafeAreaView>
     );
 };
 
@@ -159,15 +160,22 @@ const styles = StyleSheet.create({
         justifyContent: "flex-start",
         textAlignVertical: 'top',
         maxHeight: 100,
-        height: 100,
-        paddingHorizontal: 15,
+        paddingHorizontal: 10,
         fontFamily: 'Poppins_500Medium',
     },
+    activeImage: {
+        opacity: 1,
+    },
     selectedImage: {
-        width: 350,
+        width: 150,
         height: '100%',
         borderRadius: 15,
-        // resizeMode: 'contain',
+        opacity: 0.5,
+    },
+    closeButton: {
+        fontSize: 16,
+        marginRight: 10,
+        color: '#ae9159',
     },
     scrollView: {
         // padding: 16,
@@ -178,7 +186,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: 10,
-        marginTop: 16,
+        marginTop: 10,
+        marginBottom: 6,
         borderTopLeftRadius: 10,
         borderTopRightRadius: 10,
     },
@@ -203,4 +212,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default SharePost;
+export default SharePostTagPanel;

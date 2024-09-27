@@ -386,7 +386,7 @@ export const addPost = async ({
     taggedEntities = [],
     association_id,
     association_type,
-    onPostAdded = () => {}
+    onPostAdded = () => { }
 }) => {
     try {
         if (!user_id || !mediaList || mediaList.length === 0) {
@@ -473,9 +473,24 @@ export const addTagsForPost = async (user_id, postId, tags) => {
     }
 };
 
-export const fetchTaggableEntites = async (user_id, search, tagged_entities, is_vehicle) => {
-    const url = is_vehicle ? `${API_URL}/wp-json/app/v1/get-taggable-vehicles` : `${API_URL}/wp-json/app/v1/get-taggable-entities`;
+export const fetchTaggableEntites = async (user_id, search, tagged_entities, entity_type) => {
+    let url;
+    switch (entity_type) {
+        case 'car':
+            url = `${API_URL}/wp-json/app/v1/get-taggable-vehicles`;
+            break;
+        case 'events':
+            url = `${API_URL}/wp-json/app/v1/get-taggable-events`;
+            break;
+        case 'users':
+            url = `${API_URL}/wp-json/app/v1/get-taggable-entities`;
+            break;
+        default:
+            url = `${API_URL}/wp-json/app/v1/get-taggable-entities`;
+            break;
+    }
 
+    // const url = is_vehicle ? `${API_URL}/wp-json/app/v1/get-taggable-vehicles` : `${API_URL}/wp-json/app/v1/get-taggable-entities`;
     try {
         const response = await fetch(url, {
             cache: "no-cache",
@@ -483,11 +498,7 @@ export const fetchTaggableEntites = async (user_id, search, tagged_entities, is_
             headers: {
                 "Content-Type": "application/json",
             },
-            body: JSON.stringify({
-                search,
-                user_id,
-                tagged_entities
-            }),
+            body: JSON.stringify({ search, user_id, tagged_entities }),
         });
 
         const data = await response.json();

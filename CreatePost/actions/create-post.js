@@ -9,6 +9,7 @@ import RNVideoHelper from 'react-native-video-helper';
 import { Buffer } from "buffer";
 import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
+import compressVideo from './compress-video';
 
 const API_URL = Constants.expoConfig.extra.headlessAPIUrl;
 const BUCKET_NAME = Constants.expoConfig.extra.awsBucketName;
@@ -77,6 +78,7 @@ const completeMultipartUpload = async (bucketName, fileName, uploadId, parts) =>
 const compressMedia = async (media, type) => {
     const fileName = uuid.v4(); // Encode URI to handle spaces and special characters
     const encodedUri = media.uri;
+    const fileExtension = media.uri.split('.').pop();
 
     try {
         switch (type) {
@@ -119,12 +121,15 @@ const compressMedia = async (media, type) => {
                     };
                 }
 
-
-                const compressedVideo = await Video.compress(encodedUri, {
-                    quality: 1,
-                    compressionMethod: 'manual',
-                    bitrate: 5 * 1000 * 1000,
-                });
+                // const compressedVideo = await Video.compress(encodedUri, {
+                //     quality: 1,
+                //     compressionMethod: 'manual',
+                //     bitrate: 10 * 1000 * 1000,
+                // });
+                const compressedVideo = await compressVideo(encodedUri, media.duration, `${fileName}.${fileExtension}`);
+                if (!compressedVideo) {
+                    throw new Error('Failed to compress video');
+                }
 
                 const {
                     size,

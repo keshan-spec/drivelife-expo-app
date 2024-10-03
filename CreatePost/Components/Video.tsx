@@ -36,15 +36,13 @@ const CustomVideo = ({ video }: CustomVideoProps) => {
 
 
     useEffect(() => {
-        console.log('step', step);
-        
         setPaused(step === 1);
     }, [step]);
 
     const togglePaused = () => {
         setPaused((prevPaused) => !prevPaused);
     };
-    
+
     return (
         <TouchableWithoutFeedback onPress={togglePaused} style={{ width: '100%', height: '100%' }}>
             {paused && (

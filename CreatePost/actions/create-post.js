@@ -6,10 +6,7 @@ import {
     getImageMetaData,
     getVideoMetaData,
     Image,
-    Video
 } from 'react-native-compressor';
-import RNVideoHelper from 'react-native-video-helper';
-
 import {
     Buffer
 } from "buffer";
@@ -18,14 +15,11 @@ import * as Notifications from 'expo-notifications';
 import {
     Platform
 } from 'react-native';
-import {
-    setProgress
-} from './progress';
-
+import compressVideo from './compress-video';
 
 const API_URL = Constants.expoConfig.extra.headlessAPIUrl;
 const BUCKET_NAME = Constants.expoConfig.extra.awsBucketName;
-const MIN_COMPRESSION_SIZE = 1024 * 1024 * 10; // 20MB
+const MIN_COMPRESSION_SIZE = 1024 * 1024 * 20; // 20MB
 
 AWS.config.update({
     region: Constants.expoConfig.extra.awsRegion,
@@ -36,14 +30,15 @@ AWS.config.update({
 });
 
 const s3 = new AWS.S3();
-const CHUNK_SIZE = 1024 * 1024 * 5; // 5MB
+const CHUNK_SIZE = 1024 * 1024 * 20; // 5MB
 
 // Utility function to handle conversion of ph:// URIs to accessible file paths
 const convertPHUriToFilePath = async (media, filename) => {
     try {
         const {
             uri,
-            type
+            type,
+            fileName
         } = media;
 
         // Ensure this function is only necessary for iOS
@@ -53,13 +48,18 @@ const convertPHUriToFilePath = async (media, filename) => {
 
         // Determine the appropriate file extension based on media type
         let extension = '';
-        if (type.startsWith('image/')) {
-            extension = 'jpg';
-        } else if (type.startsWith('video/')) {
-            extension = 'mp4';
-        } else {
-            throw new Error('Unsupported media type');
+        const fileExtension = fileName.split('.').pop();
+        if (fileExtension) {
+            extension = fileExtension;
         }
+
+        // if (type.startsWith('image/')) {
+        //     extension = 'jpg';
+        // } else if (type.startsWith('video/')) {
+        //     extension = 'mov';
+        // } else {
+        //     throw new Error('Unsupported media type');
+        // }
 
         // Generate a temporary file path
         const tempFilePath = `${RNFS.TemporaryDirectoryPath}/${filename}.${extension}`;
@@ -124,14 +124,27 @@ const compressMedia = async (media, type) => {
     try {
         // Convert ph:// URI to local file path
         const fileName = uuid.v4();
-        const filePath = await convertPHUriToFilePath(media, fileName);
+        const filePath = type === 'image' ? await convertPHUriToFilePath(media, fileName) : media.localUri;
+        const fileExtension = filePath.split('.').pop();
+        const fileSize = media.fileSize || 0;
 
         if (type === 'image') {
+            if (fileSize < MIN_COMPRESSION_SIZE) {
+                return {
+                    uri: filePath,
+                    height: media.height,
+                    width: media.width,
+                    fileSize: fileSize,
+                    filename: `${uuid.v4()}.${fileExtension}`,
+                };
+            }
+
+            console.log(`Compressing ${type}> ${filePath} - ${fileSize}B`);
             const compressedImage = await Image.compress(filePath, {
                 compressionMethod: 'manual',
                 quality: 1,
-                maxHeight: 2000,
-                maxWidth: 1600,
+                maxHeight: 3500,
+                maxWidth: 3500,
             });
 
             const {
@@ -149,20 +162,22 @@ const compressMedia = async (media, type) => {
                 filename: `${uuid.v4()}.${extension}`,
             };
         } else if (type === 'video') {
-            // check if the video is over 10MB
-            // if (media.fileSize < MIN_COMPRESSION_SIZE) {
-            //     return {
-            //         ...media,
-            //         uri: filePath,
-            //         filename: `${fileName}.mp4`,
-            //     }
-            // }
+            if (fileSize < MIN_COMPRESSION_SIZE) {
+                return {
+                    uri: filePath,
+                    height: media.height,
+                    width: media.width,
+                    fileSize: fileSize,
+                    filename: `${fileName}.${fileExtension}`,
+                };
+            }
 
-            const compressedPath = await Video.compress(media.uri, {
-                compressionMethod: 'auto', // Can also be 'manual'
-            });
+            console.log(`Compressing ${type}> ${filePath} - ${fileSize}B`);
+            const compressedPath = await compressVideo(filePath, media.duration);
+            if (!compressedPath) {
+                throw new Error('Failed to compress video');
+            }
 
-            // Video compression logic goes here...
             const {
                 size,
                 height,
@@ -292,6 +307,7 @@ const uploadFilesToCloudflare = async (mediaList) => {
     const CLOUDFLARE_API_TOKEN = Constants.expoConfig.extra.cloudflareApiToken;
 
     const CLOUDFLARE_UPLOAD_URL = `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/images/v1`;
+    const CLOUDFLARE_STREAM_URL = `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/stream`;
 
     try {
         const uploadedData = [];
@@ -299,10 +315,11 @@ const uploadFilesToCloudflare = async (mediaList) => {
 
         for (let i = 0; i < mediaList.length; i++) {
             const file = mediaList[i];
+
             const type = file.type.split('/')[0];
             const mime = file.type;
 
-            // Compress file if needed (similar to your current setup)
+            // Compress file if needed
             const currentFile = await compressMedia(file, type);
             if (!currentFile) {
                 throw new Error('Failed to compress media');
@@ -312,18 +329,36 @@ const uploadFilesToCloudflare = async (mediaList) => {
             const fileName = currentFile.filename;
             const fileSize = currentFile.fileSize;
 
-            // Read the file as base64
-            const fileData = await RNFS.readFile(filePath, 'base64');
-            const formData = new FormData();
-            formData.append('file', {
-                uri: `data:${mime};base64,${fileData}`,
-                name: fileName,
-                type: mime
-            });
+            let formData;
+            let uploadUrl = '';
 
-            // Make the POST request to upload the file
-            const request = await fetch(CLOUDFLARE_UPLOAD_URL, {
-                method: "POST",
+            if (type === 'image') {
+                // Read the file as base64 for image uploads
+                const fileData = await RNFS.readFile(filePath, 'base64');
+                formData = new FormData();
+                formData.append('file', {
+                    uri: `data:${mime};base64,${fileData}`,
+                    name: fileName,
+                    type: mime
+                });
+                uploadUrl = CLOUDFLARE_UPLOAD_URL;
+            } else if (type === 'video') {
+                formData = new FormData();
+                formData.append('file', {
+                    uri: filePath,
+                    name: fileName,
+                    type: mime
+                });
+                uploadUrl = CLOUDFLARE_STREAM_URL;
+            }
+
+
+            console.log('Uploading file:', currentFile);
+
+
+            // Upload the file
+            const request = await fetch(uploadUrl, {
+                method: 'POST',
                 body: formData,
                 headers: {
                     'Authorization': `Bearer ${CLOUDFLARE_API_TOKEN}`,
@@ -334,16 +369,22 @@ const uploadFilesToCloudflare = async (mediaList) => {
             const response = await request.json();
 
             if (!response || response.success !== true) {
-                throw new Error(response.errors[0].message || 'Failed to upload file to Cloudflare');
+                throw new Error(response.errors ? response.errors[0].message : 'Failed to upload file to Cloudflare');
             }
 
-            if (response && response.success === true) {
-                const {
-                    id
-                } = response.result;
+            if (response.success === true) {
+                let mediaId = '';
+
+                if (type === 'image') {
+                    const { id } = response.result;
+                    mediaId = id;
+                } else if (type === 'video') {
+                    const { uid } = response.result;
+                    mediaId = uid;
+                }
 
                 uploadedData.push({
-                    url: id,
+                    url: mediaId,
                     mime,
                     type,
                     width: currentFile.width,
@@ -355,12 +396,21 @@ const uploadFilesToCloudflare = async (mediaList) => {
             // Update progress
             completeStatusPercent = Math.round(((i + 1) / mediaList.length) * 100);
             console.log(`File ${i + 1}/${mediaList.length} upload complete: ${completeStatusPercent}%`);
+
+
+            await BackgroundService.updateNotification({
+                progressBar: {
+                    max: 100,
+                    value: completeStatusPercent,
+                },
+                taskTitle: 'Uploading media files',
+                taskDesc: `Uploading ${completeStatusPercent}% completed`,
+            });
         }
 
         return uploadedData;
     } catch (error) {
         console.error('Error uploading files to Cloudflare:', error);
-        await BackgroundService.stop();
         throw error;
     }
 };

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { AppState, Alert, Linking, BackHandler, Platform, StatusBar, View, ActivityIndicator, Image } from "react-native";
+import { AppState, Alert, Linking, BackHandler, Platform, StatusBar, View, Image } from "react-native";
 import { WebView, WebViewMessageEvent } from 'react-native-webview';
 
 import 'expo-dev-client';
@@ -19,7 +19,9 @@ import ProgressNotification from './ProgressNotif';
 import { useNetInfoInstance } from "@react-native-community/netinfo";
 import { OfflineView } from './OfflineView';
 
-const URL = 'https://app.mydrivelife.com';
+// const URL = 'https://app.mydrivelife.com';
+const URL = Constants.expoConfig?.extra?.appUrl || 'https://app.mydrivelife.com';
+
 const options = {
   taskName: 'PostUpload',
   taskTitle: 'Post Upload',
@@ -462,7 +464,6 @@ export default function App() {
 
               return true;
             }}
-            cacheEnabled
             javaScriptEnabled
             allowsInlineMediaPlayback
             source={{ uri: `${URL}${deepLinkUrl ? '?deeplink=' + deepLinkUrl : ''}` }}

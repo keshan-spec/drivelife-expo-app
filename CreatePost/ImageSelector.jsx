@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Image, FlatList, StyleSheet, Dimensions, SafeAreaView, TouchableOpacity, Text } from 'react-native';
+import { View, Image, FlatList, StyleSheet, Dimensions, SafeAreaView, TouchableOpacity, Text, Alert } from 'react-native';
 import * as MediaLibrary from 'expo-media-library';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 // https://icons.expo.fyi/Index
@@ -19,6 +19,7 @@ import { requestIOSMediaPermissions } from '../utils';
 
 const numColumns = 4;
 const screenWidth = Dimensions.get('window').width;
+const MAX_FILE_SIZE = 100 * 1024 * 1024;
 
 const formatData = (photos, numColumns) => {
     const numberOfFullRows = Math.floor(photos.length / numColumns);
@@ -36,7 +37,7 @@ const getSelectMediaIndex = (selectedPhotos, image) => {
     return selectedPhotos.findIndex(photo => photo.uri === image.uri);
 };
 
-const PhotoGrid = ({ photos, loadMorePhotos, onSelectImage, selectedPhotos, isMultiSelect }) => {
+const PhotoGridV1 = ({ photos, loadMorePhotos, onSelectImage, selectedPhotos, isMultiSelect }) => {
     const renderItem = ({ item, index }) => {
         if (item.empty) {
             return <View style={[styles.item, styles.itemInvisible]} />;
@@ -100,6 +101,147 @@ const PhotoGrid = ({ photos, loadMorePhotos, onSelectImage, selectedPhotos, isMu
     );
 };
 
+const PhotoGrid = ({ photos, loadMorePhotos, onSelectImage, selectedPhotos, isMultiSelect }) => {
+    const memoizedRenderItem = useCallback(({ item, index }) => {
+        if (item.empty) {
+            return <View style={[styles.item, styles.itemInvisible]} />;
+        }
+
+        const isSelected = selectedPhotos.some(photo => photo.uri === item.uri);
+        const indexInSelectedPhotos = getSelectMediaIndex(selectedPhotos, item);
+
+        return (
+            <TouchableOpacity style={[styles.item, {
+                opacity: item.disabled ? 0.3 : 1,
+            }]} onPress={() => {
+                if (item.disabled) {
+                    // show small toast
+                    // ToastAndroid.showWithGravity(
+                    //     'File too large - please select a video less than 30 seconds & under 100MB',
+                    //     ToastAndroid.SHORT,
+                    //     ToastAndroid.CENTER // You can use ToastAndroid.TOP, ToastAndroid.BOTTOM, etc.
+                    // );
+                    Alert.alert('Oops!', 'File too large - please select a video less than 30 seconds & under 100MB');
+                    return;
+                }
+
+                onSelectImage(item);
+            }}>
+                <Image
+                    key={index}
+                    source={{ uri: item.uri }}
+                    style={[styles.image, isSelected && styles.selectedImageTile]}
+                />
+
+                {/* if not selected */}
+                {isMultiSelect && !isSelected && (
+                    <MaterialCommunityIcons
+                        name="checkbox-blank-circle-outline"
+                        size={25}
+                        color="white"
+                        style={{
+                            position: 'absolute',
+                            top: 5,
+                            right: 5,
+                        }}
+                    />
+                )}
+
+                {isMultiSelect && isSelected && (
+                    // number
+                    <View style={{
+                        position: 'absolute',
+                        top: 5,
+                        right: 5,
+                        backgroundColor: 'rgba(59, 84, 245, 0.5)',
+                        borderRadius: 9999,
+                        width: 25,
+                        height: 25,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                    }}>
+                        <Text style={{ color: 'white' }}>{indexInSelectedPhotos + 1}</Text>
+                    </View>
+                )}
+            </TouchableOpacity>
+        );
+    }, [selectedPhotos]);
+
+    const renderItem = ({ item, index }) => {
+        if (item.empty) {
+            return <View style={[styles.item, styles.itemInvisible]} />;
+        }
+
+        const isSelected = selectedPhotos.some(photo => photo.uri === item.uri);
+        const indexInSelectedPhotos = getSelectMediaIndex(selectedPhotos, item);
+
+        return (
+            <TouchableOpacity style={[styles.item, {
+                opacity: item.disabled ? 0.3 : 1,
+            }]} onPress={() => {
+                if (item.disabled) {
+                    Alert.alert('Oops!', 'File too large - please select a video less than 30 seconds & under 100MB');
+                    return;
+                }
+
+                onSelectImage(item);
+            }}>
+                <Image
+                    key={index}
+                    source={{ uri: item.uri }}
+                    style={[styles.image, isSelected && styles.selectedImageTile]}
+                />
+
+                {/* if not selected */}
+                {isMultiSelect && !isSelected && (
+                    <MaterialCommunityIcons
+                        name="checkbox-blank-circle-outline"
+                        size={25}
+                        color="white"
+                        style={{
+                            position: 'absolute',
+                            top: 5,
+                            right: 5,
+                        }}
+                    />
+                )}
+
+                {isMultiSelect && isSelected && (
+                    // number
+                    <View style={{
+                        position: 'absolute',
+                        top: 5,
+                        right: 5,
+                        backgroundColor: 'rgba(59, 84, 245, 0.5)',
+                        borderRadius: 9999,
+                        width: 25,
+                        height: 25,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                    }}>
+                        <Text style={{ color: 'white' }}>{indexInSelectedPhotos + 1}</Text>
+                    </View>
+                )}
+            </TouchableOpacity>
+        );
+    };
+
+    return (
+        <FlatList
+            data={formatData(photos, numColumns)}
+            style={styles.container}
+            renderItem={renderItem}
+            numColumns={numColumns}
+            keyExtractor={(_, index) => index.toString()}
+            onEndReached={loadMorePhotos}
+            onEndReachedThreshold={0.5}
+            initialNumToRender={10}  // Render a limited number of items initially
+            windowSize={10}          // How many items should be kept in memory
+            maxToRenderPerBatch={5}  // Limits rendering batches to improve performance
+        />
+    );
+};
+
 export async function checkAndRequestMediaLibraryPermissions() {
     try {
         // Check if the platform is Android
@@ -145,7 +287,7 @@ const ImageSelector = ({ navigation, onClose }) => {
         }
     }, [selectedPhotos]);
 
-    const getPhotos = async (page) => {
+    const getPhotos = useCallback(async (page) => {
         try {
             const hasPermission = await checkAndRequestMediaLibraryPermissions();
             if (!hasPermission) {
@@ -154,7 +296,7 @@ const ImageSelector = ({ navigation, onClose }) => {
 
             const gallery = await MediaLibrary.getAssetsAsync({
                 first: 20 * page,
-                mediaType: ['photo'],
+                mediaType: ['photo', 'video'],
                 sortBy: ['creationTime'],
             });
 
@@ -166,6 +308,7 @@ const ImageSelector = ({ navigation, onClose }) => {
 
             const images = await Promise.all(
                 assets.map(async (asset) => {
+
                     // Check if the file exists before accessing it
                     const fileExists = await FileSystem.getInfoAsync(asset.uri);
                     if (!fileExists.exists) {
@@ -173,19 +316,28 @@ const ImageSelector = ({ navigation, onClose }) => {
                         return null;
                     }
 
-                    let { size } = await FileSystem.getInfoAsync(asset.uri, { size: true });
+                    const { localUri } = await MediaLibrary.getAssetInfoAsync(asset.id);
+
+                    let { size } = await FileSystem.getInfoAsync(localUri, { size: true });
 
                     const mimeType = asset.filename.split('.').pop();
                     const type = asset.mediaType === 'photo' ? 'image' : 'video';
 
+                    // max 100mb
+                    const exceedsSize = size > MAX_FILE_SIZE;
+                    const exceedsDuration = type === 'video' && asset.duration > 30;
+
                     return {
                         uri: asset.uri,
+                        localUri,
                         fileName: asset.filename,
                         fileSize: size,
                         type: `${type}/${mimeType}`,
                         width: asset.width,
                         height: asset.height,
                         id: asset.id,
+                        duration: asset.duration,
+                        disabled: exceedsSize || exceedsDuration,
                     };
                 })
             );
@@ -195,7 +347,13 @@ const ImageSelector = ({ navigation, onClose }) => {
             setPhotos(filteredImages);
 
             if (selectedPhotos.length === 0 && filteredImages.length > 0) {
-                setSelectedPhotos([filteredImages[0]]);
+                // get the first NON disabled photo
+                const nonDisabledPhoto = filteredImages.find(photo => !photo.disabled);
+                if (nonDisabledPhoto) {
+                    setSelectedPhotos([nonDisabledPhoto]);
+                }
+
+                // setSelectedPhotos([filteredImages[0]]);
             }
         } catch (error) {
             console.log('Error getting photos', error);
@@ -204,7 +362,7 @@ const ImageSelector = ({ navigation, onClose }) => {
                 message: 'Storage access is required to select photos. Please enable it in the settings.',
             });
         }
-    };
+    }, [selectedPhotos, page]);
 
     const loadMorePhotos = useCallback(() => {
         if (hasNextPage && !loading) {
@@ -258,24 +416,39 @@ const ImageSelector = ({ navigation, onClose }) => {
     };
 
     const openImagePicker = () => {
-
         launchImageLibrary({
             title: 'Select Images',
-            mediaType: 'photo',
+            mediaType: 'mixed',
             presentationStyle: 'formSheet',
             selectionLimit: isMultiSelect ? 5 : 1,
             includeExtra: true,
-        }, (response) => {
+        }, async (response) => {
             if (response.didCancel) {
                 console.log('User cancelled image picker');
             } else if (response.error) {
                 console.log('ImagePicker Error: ', response.error);
+                Alert.alert('Error', 'Oops! Something went wrong. Please try again.');
             } else {
                 const takenPhoto = response.assets[0];
-                const id = takenPhoto.id.split('.')[0];
+
+                // check for size and duration restrictions
+                const { fileSize, duration } = takenPhoto;
+                if ((fileSize > MAX_FILE_SIZE) || (duration > 30)) {
+                    Alert.alert('Oops!', 'File too large - please select a video less than 30 seconds & under 100MB');
+                    return;
+                }
+
+                // check if the photo is already selected
+                if (selectedPhotos.some(photo => photo.uri === takenPhoto.uri)) {
+                    return;
+                }
+
+                const asset = await MediaLibrary.getAssetInfoAsync(takenPhoto.id);
+
                 setSelectedPhotos([{
                     ...takenPhoto,
-                    id,
+                    uri: asset.uri,
+                    localUri: takenPhoto.uri,
                 }]);
             }
         });
@@ -353,7 +526,7 @@ const ImageSelector = ({ navigation, onClose }) => {
                         <MaterialCommunityIcons name="chevron-down" size={18} color="white" />
                     </TouchableOpacity>
 
-                    {/* <View style={{
+                    <View style={{
                         display: 'flex',
                         flexDirection: 'row',
                         justifyContent: 'center',
@@ -376,10 +549,10 @@ const ImageSelector = ({ navigation, onClose }) => {
                                 )}
                         </TouchableOpacity>
 
-                        <TouchableOpacity onPress={openCamera} style={styles.multiSelectBtn}>
+                        {/* <TouchableOpacity onPress={openCamera} style={styles.multiSelectBtn}>
                             <Ionicons name="camera-outline" size={18} color="white" />
-                        </TouchableOpacity>
-                    </View> */}
+                        </TouchableOpacity> */}
+                    </View>
                 </View>
                 <PhotoGrid
                     photos={photos}
@@ -440,7 +613,7 @@ const styles = StyleSheet.create({
         height: (screenWidth / numColumns) - 2,
     },
     selectedImageTile: {
-        backgroundColor: 'rgba(59, 84, 245, 0.5)',
+        backgroundColor: 'rgba(255, 170, 10, 0.9)',
         opacity: 0.3,
     },
     topHalf: {

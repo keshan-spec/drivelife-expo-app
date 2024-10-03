@@ -10,28 +10,28 @@ ENV['RCT_NEW_ARCH_ENABLED'] = podfile_properties['newArchEnabled'] == 'true' ? '
 ENV['EX_DEV_CLIENT_NETWORK_INSPECTOR'] = '1' if podfile_properties['EX_DEV_CLIENT_NETWORK_INSPECTOR'] == 'true'
 
 setup_permissions([
-  # 'Calendars',
-  # 'CalendarsWriteOnly',
-   'Camera',
-  # 'Contacts',
-  # 'FaceID',
-   'LocationAccuracy',
+  'Camera',
+  'LocationAccuracy',
+  'LocationWhenInUse',
+  'MediaLibrary',
+  'Notifications',
+  'PhotoLibrary',
   # 'LocationAlways',
-   'LocationWhenInUse',
-   'MediaLibrary',
   # 'Microphone',
   # 'Motion',
-   'Notifications',
-   'PhotoLibrary',
   # 'PhotoLibraryAddOnly',
+  # 'CalendarsWriteOnly',
+  # 'Calendars',
+  # 'FaceID',
+  # 'Contacts',
 ])
-
 
 platform :ios, podfile_properties['ios.deploymentTarget'] || '13.0'
 install! 'cocoapods',
   :deterministic_uuids => false
 
 prepare_react_native_project!
+
 
 # If you are using a `react-native-flipper` your iOS build will fail when `NO_FLIPPER=1` is set.
 # because `react-native-flipper` depends on (FlipperKit,...), which will be excluded. To fix this,
@@ -58,6 +58,8 @@ elsif podfile_properties.key?('ios.flipper') then
 end
 
 target 'DriveLife' do
+  pod 'ffmpeg-kit-react-native', :subspecs => ['video'], :podspec => '../node_modules/ffmpeg-kit-react-native/ffmpeg-kit-react-native.podspec'
+
   use_expo_modules!
   config = use_native_modules!
 

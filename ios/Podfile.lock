@@ -126,6 +126,10 @@ PODS:
     - React-Core (= 0.71.14)
     - React-jsi (= 0.71.14)
     - ReactCommon/turbomodule/core (= 0.71.14)
+  - ffmpeg-kit-ios-video (6.0)
+  - ffmpeg-kit-react-native/video (6.0.2):
+    - ffmpeg-kit-ios-video (= 6.0)
+    - React-Core
   - fmt (6.2.1)
   - glog (0.3.5)
   - hermes-engine (0.71.14):
@@ -573,6 +577,7 @@ DEPENDENCIES:
   - EXUpdatesInterface (from `../node_modules/expo-updates-interface/ios`)
   - FBLazyVector (from `../node_modules/react-native/Libraries/FBLazyVector`)
   - FBReactNativeSpec (from `../node_modules/react-native/React/FBReactNativeSpec`)
+  - ffmpeg-kit-react-native/video (from `../node_modules/ffmpeg-kit-react-native/ffmpeg-kit-react-native.podspec`)
   - glog (from `../node_modules/react-native/third-party-podspecs/glog.podspec`)
   - hermes-engine (from `../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)
   - libevent (~> 2.1.12)
@@ -625,6 +630,7 @@ DEPENDENCIES:
 
 SPEC REPOS:
   trunk:
+    - ffmpeg-kit-ios-video
     - fmt
     - libevent
     - OneSignalXCFramework
@@ -684,6 +690,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/Libraries/FBLazyVector"
   FBReactNativeSpec:
     :path: "../node_modules/react-native/React/FBReactNativeSpec"
+  ffmpeg-kit-react-native:
+    :podspec: "../node_modules/ffmpeg-kit-react-native/ffmpeg-kit-react-native.podspec"
   glog:
     :podspec: "../node_modules/react-native/third-party-podspecs/glog.podspec"
   hermes-engine:
@@ -805,6 +813,8 @@ SPEC CHECKSUMS:
   EXUpdatesInterface: dd699d1930e28639dcbd70a402caea98e86364ca
   FBLazyVector: 12ea01e587c9594e7b144e1bfc86ac4d9ac28fde
   FBReactNativeSpec: b6ae48e67aaba46442f84d6f9ba598ccfbe2ee66
+  ffmpeg-kit-ios-video: d3a8a535570063b717f88da68f9089e213aa21ba
+  ffmpeg-kit-react-native: 3cea88c9c5cfad62e1465279ea7d800dfbba3b00
   fmt: ff9d55029c625d3757ed641535fd4a75fedc7ce9
   glog: 04b94705f318337d7ead9e6d17c019bd9b1f6b1b
   hermes-engine: d7cc127932c89c53374452d6f93473f1970d8e88
@@ -855,6 +865,6 @@ SPEC CHECKSUMS:
   UMAppLoader: d1cd37524ea948f9e695722994496784a6d6213c
   Yoga: e71803b4c1fff832ccf9b92541e00f9b873119b9
 
-PODFILE CHECKSUM: aee4c0a96a774af0b2a20d1ebd2b8cdc9188af23
+PODFILE CHECKSUM: 5fe1c6948455554cc7149521bc10e262bf6facef
 
 COCOAPODS: 1.15.2

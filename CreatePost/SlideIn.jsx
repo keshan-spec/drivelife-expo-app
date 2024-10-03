@@ -170,7 +170,7 @@ const BottomSheet = ({ visible, onClose, title, activePanel }) => {
                                 activePanel={activePanel}
                                 searching={searching}
                             />
-                            {searching && <TagSuggestionSkeleton />}
+                            {(searching && activePanel !== 'car') && <TagSuggestionSkeleton />}
                         </View>
                     </Animated.View>
                 </View>

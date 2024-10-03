@@ -257,7 +257,7 @@ const TagSuggestions = ({ data, setTaggedData, activePanel, searching, taggedDat
             <FlatList
                 style={{
                     width: '100%',
-                    height: isKeyboardVisible ? '80%' : '50%',
+                    height: activePanel === 'car' ? isKeyboardVisible ? '80%' : '50%' : '90%',
                 }}
                 data={data}
                 renderItem={renderItem}

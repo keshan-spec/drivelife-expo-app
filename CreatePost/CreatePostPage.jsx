@@ -21,6 +21,7 @@ const Stack = createStackNavigator();
 const CreatePost = ({
     onComplete,
     onClose,
+    userId,
 }) => {
     const [fontsLoaded] = useFonts({
         Poppins_500Medium,
@@ -33,7 +34,7 @@ const CreatePost = ({
     }
 
     return (
-        <PostProvider>
+        <PostProvider userId={userId}>
             <NavigationContainer>
                 <Stack.Navigator initialRouteName="ImageSelection">
                     <Stack.Screen

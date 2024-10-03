@@ -487,6 +487,28 @@ export const fetchTaggableEntites = async (user_id, search, tagged_entities, ent
     }
 };
 
+export const fetchUserGarage = async (user_id) => {
+    try {
+        const response = await fetch(`${API_URL}/wp-json/app/v1/get-user-garage`, {
+            cache: "no-cache",
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ user_id }),
+        });
+
+        const data = await response.json();
+        if (!response.ok || response.status !== 200) {
+            throw new Error(data.message);
+        }
+
+        return data;
+    } catch (e) {
+        return [];
+    }
+};
+
 const addNotification = async (title, message, data = null) => {
     // add a notification to the user
     await Notifications.scheduleNotificationAsync({

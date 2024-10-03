@@ -365,6 +365,7 @@ export default function App() {
 
       {view === 'createPost' && (
         <CreatePost
+          userId={carcalSession}
           onClose={() => setView('webview')}
           onComplete={onPostCreateBtnPress}
         />

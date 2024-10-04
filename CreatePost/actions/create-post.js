@@ -83,6 +83,25 @@ const compressMedia = async (media, type) => {
     try {
         switch (type) {
             case 'image':
+                // if image is less than 20MB, don't compress
+                const fileSize = await RNFS.stat(encodedUri);
+
+                if (fileSize.size < MIN_COMPRESSION_SIZE) {
+                    const {
+                        ImageHeight,
+                        ImageWidth,
+                        extension: imageExtension
+                    } = await getImageMetaData(encodedUri);
+
+                    return {
+                        uri: encodedUri,
+                        height: ImageHeight,
+                        width: ImageWidth,
+                        fileSize: fileSize.size,
+                        filename: `${fileName}.${imageExtension}`,
+                    };
+                }
+
                 const compressedImage = await Image.compress(encodedUri, {
                     quality: 1,
                 });

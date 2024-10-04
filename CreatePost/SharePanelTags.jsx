@@ -13,13 +13,6 @@ const SharePostTagPanel = ({ navigation, onComplete }) => {
 
     const renderSelectedPhotos = useCallback(() => {
         if (selectedPhotos.length === 1) {
-            // if (isVideo(selectedPhotos[0])) {
-            //     return <Image
-            //         source={{ uri: selectedPhotos[0].uri }}
-            //         style={styles.selectedImage}
-            //     />;
-            // }
-
             return (
                 <TouchableWithoutFeedback onPress={() => setActiveImageIndex(0)}>
                     <Image

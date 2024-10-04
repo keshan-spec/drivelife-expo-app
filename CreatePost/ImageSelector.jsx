@@ -1,22 +1,24 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Image, FlatList, StyleSheet, Dimensions, SafeAreaView, TouchableOpacity, Text, ActivityIndicator, VirtualizedList } from 'react-native';
+import { View, FlatList, StyleSheet, Dimensions, SafeAreaView, TouchableOpacity, Text } from 'react-native';
 import * as MediaLibrary from 'expo-media-library';
-import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
-// https://icons.expo.fyi/Index
+import { launchCamera } from 'react-native-image-picker';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 
-// https://www.npmjs.com/package/@react-native-camera-roll/camera-roll
 import { Platform, ToastAndroid } from "react-native";
 import { usePostProvider } from './ContextProvider';
 import CustomVideo from './Components/Video';
 import { stat } from 'react-native-fs';
 import { checkCameraPermission, checkStoragePermission, showSettingsAlert } from '../permissions/camera';
 
+import FastImage from 'react-native-fast-image';
+
+import { CameraRoll } from "@react-native-camera-roll/camera-roll";
+import ViewAlbums from './ViewAlbums';
+
 const numColumns = 4;
 const screenWidth = Dimensions.get('window').width;
 const MAX_FILE_SIZE = 100 * 1024 * 1024;
-
 
 const formatData = (photos, numColumns) => {
     const numberOfFullRows = Math.floor(photos.length / numColumns);
@@ -59,10 +61,13 @@ const PhotoGrid = ({ photos, loadMorePhotos, onSelectImage, selectedPhotos, isMu
 
                 onSelectImage(item);
             }}>
-                <Image
-                    key={index}
-                    source={{ uri: item.uri }}
+                <FastImage
                     style={[styles.image, isSelected && styles.selectedImageTile]}
+                    source={{
+                        uri: item.uri,
+                        priority: FastImage.priority.normal,
+                    }}
+                    resizeMode={FastImage.resizeMode.cover}
                 />
 
                 {/* if not selected */}
@@ -99,75 +104,11 @@ const PhotoGrid = ({ photos, loadMorePhotos, onSelectImage, selectedPhotos, isMu
         );
     }, [selectedPhotos]);
 
-    const renderItem = ({ item, index }) => {
-        if (item.empty) {
-            return <View style={[styles.item, styles.itemInvisible]} />;
-        }
-
-        const isSelected = selectedPhotos.some(photo => photo.uri === item.uri);
-        const indexInSelectedPhotos = getSelectMediaIndex(selectedPhotos, item);
-
-        return (
-            <TouchableOpacity style={[styles.item, {
-                opacity: item.disabled ? 0.3 : 1,
-            }]} onPress={() => {
-                if (item.disabled) {
-                    // show small toast
-                    ToastAndroid.showWithGravity(
-                        'File too large - please select a video less than 30 seconds & under 100MB',
-                        ToastAndroid.SHORT,
-                        ToastAndroid.CENTER // You can use ToastAndroid.TOP, ToastAndroid.BOTTOM, etc.
-                    );
-                    return;
-                }
-
-                onSelectImage(item);
-            }}>
-                <Image
-                    key={index}
-                    source={{ uri: item.uri }}
-                    style={[styles.image, isSelected && styles.selectedImageTile]}
-                />
-
-                {/* if not selected */}
-                {isMultiSelect && !isSelected && (
-                    <MaterialCommunityIcons
-                        name="checkbox-blank-circle-outline"
-                        size={25}
-                        color="white"
-                        style={{
-                            position: 'absolute',
-                            top: 5,
-                            right: 5,
-                        }}
-                    />
-                )}
-
-                {isMultiSelect && isSelected && (
-                    // number
-                    <View style={{
-                        position: 'absolute',
-                        top: 5,
-                        right: 5,
-                        backgroundColor: 'rgba(59, 84, 245, 0.5)',
-                        borderRadius: 9999,
-                        width: 25,
-                        height: 25,
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                    }}>
-                        <Text style={{ color: 'white' }}>{indexInSelectedPhotos + 1}</Text>
-                    </View>
-                )}
-            </TouchableOpacity>
-        );
-    };
-
     return (
         <FlatList
             data={formatData(photos, numColumns)}
             style={styles.container}
-            renderItem={renderItem}
+            renderItem={memoizedRenderItem}
             numColumns={numColumns}
             keyExtractor={(_, index) => index.toString()}
             onEndReached={loadMorePhotos}
@@ -186,12 +127,29 @@ const ImageSelector = ({ navigation, onClose }) => {
     const [page, setPage] = useState(1);
     const [hasNextPage, setHasNextPage] = useState(true);
     const [isMultiSelect, setIsMultiSelect] = useState(false);
+    const [mediaFilter, setmediaFilter] = useState(null);
+    const [showAlbums, setShowAlbums] = useState(false);
+
+    useEffect(() => {
+        if (mediaFilter) {
+            setSelectedPhotos([]);
+            setPage(1);
+            setPhotos([]);
+            getPhotos(1);
+            setHasNextPage(true);
+            setIsMultiSelect(false);
+            setLoading(false);
+        }
+    }, [mediaFilter]);
 
     useEffect(() => {
         if (selectedPhotos.length === 0 && photos.length > 0) {
-            setSelectedPhotos([photos[0]]);
+            const nonDisabledPhoto = photos.find(photo => !photo.disabled);
+            if (nonDisabledPhoto) {
+                setSelectedPhotos([nonDisabledPhoto]);
+            }
         }
-    }, [selectedPhotos]);
+    }, [selectedPhotos, photos]);
 
     useEffect(() => {
         getPhotos(page);
@@ -199,7 +157,25 @@ const ImageSelector = ({ navigation, onClose }) => {
 
     const onSelectImage = (image) => {
         if (isMultiSelect) {
+
+            // max 5 photos
+            if (selectedPhotos.length >= 5) {
+                // if already selected, remove it
+                if (selectedPhotos.some(photo => photo.uri === image.uri)) {
+                    setSelectedPhotos(prevSelectedPhotos => prevSelectedPhotos.filter(photo => photo.uri !== image.uri));
+                } else {
+                    ToastAndroid.showWithGravity(
+                        'Maximum 5 photos allowed',
+                        ToastAndroid.SHORT,
+                        ToastAndroid.CENTER // You can use ToastAndroid.TOP, ToastAndroid.BOTTOM, etc.
+                    );
+                }
+                return;
+            }
+
             setSelectedPhotos((prevSelectedPhotos) => {
+
+
                 if (prevSelectedPhotos.some(photo => photo.uri === image.uri)) {
                     return prevSelectedPhotos.filter(photo => photo.uri !== image.uri);
                 } else {
@@ -217,10 +193,23 @@ const ImageSelector = ({ navigation, onClose }) => {
                 return;
             }
 
+            let mediaType = ['video', 'photo'];
+            let albumId = null;
+
+            if (mediaFilter) {
+                if (mediaFilter.id === 'all') {
+                    mediaType = ['video', 'photo'];
+                } else {
+                    mediaType = mediaFilter.mediaType;
+                    albumId = mediaFilter.id;
+                }
+            }
+
             const gallery = await MediaLibrary.getAssetsAsync({
-                first: 20 * page,
-                mediaType: ['video', 'photo'],
+                first: 20 * page, // Pagination: 20 items per page
+                mediaType: mediaType,
                 sortBy: ['creationTime'],
+                album: albumId,  // If an album is selected, fetch from that album
             });
 
             const { assets, hasNextPage } = gallery;
@@ -262,7 +251,6 @@ const ImageSelector = ({ navigation, onClose }) => {
                 if (nonDisabledPhoto) {
                     setSelectedPhotos([nonDisabledPhoto]);
                 }
-                // setSelectedPhotos([media[0]]);
             }
         } catch (error) {
             console.log('Error getting photos', error);
@@ -274,50 +262,7 @@ const ImageSelector = ({ navigation, onClose }) => {
     };
 
     const openImagePicker = () => {
-        launchImageLibrary({
-            title: 'Select Images',
-            mediaType: 'mixed',
-            presentationStyle: 'pageSheet',
-            selectionLimit: isMultiSelect ? 5 : 1,
-            includeExtra: true,
-        }, (response) => {
-            if (response.didCancel) {
-                console.log('User cancelled image picker');
-            } else if (response.error) {
-                console.log('ImagePicker Error: ', response.error);
-                ToastAndroid.showWithGravity(
-                    'Oops! Something went wrong. Please try again.',
-                    ToastAndroid.SHORT,
-                    ToastAndroid.CENTER // You can use ToastAndroid.TOP, ToastAndroid.BOTTOM, etc.
-                );
-            } else {
-                const takenPhoto = response.assets[0];
-
-                // check for size and duration restrictions
-                const { fileSize, duration } = takenPhoto;
-
-                if ((fileSize > MAX_FILE_SIZE) || (duration > 30)) {
-                    // show small toast
-                    ToastAndroid.showWithGravity(
-                        'File too large - please select a video less than 30 seconds & under 100MB',
-                        ToastAndroid.SHORT,
-                        ToastAndroid.CENTER // You can use ToastAndroid.TOP, ToastAndroid.BOTTOM, etc.
-                    );
-                    return;
-                }
-
-                // check if the photo is already selected
-                if (selectedPhotos.some(photo => photo.uri === takenPhoto.uri)) {
-                    return;
-                }
-
-                const id = takenPhoto.id.split('.')[0];
-                setSelectedPhotos([{
-                    ...takenPhoto,
-                    id,
-                }]);
-            }
-        });
+        setShowAlbums(true);
     };
 
     const openCamera = async () => {
@@ -359,10 +304,14 @@ const ImageSelector = ({ navigation, onClose }) => {
         }
 
         return (
-            <Image
+            <FastImage
                 key={lastAddedPhoto.uri}
-                source={{ uri: lastAddedPhoto.uri }}
+                source={{
+                    uri: lastAddedPhoto.uri,
+                    priority: FastImage.priority.normal,
+                }}
                 style={styles.selectedImage}
+                resizeMode={FastImage.resizeMode.contain}
             />
         );
     };
@@ -377,10 +326,21 @@ const ImageSelector = ({ navigation, onClose }) => {
                 return newPage;
             });
         }
-    }, [loading, hasNextPage]);
+    }, [loading, hasNextPage, mediaFilter]);
 
     return (
         <SafeAreaView style={{ flex: 1 }}>
+            <ViewAlbums
+                onClose={() => {
+                    setShowAlbums(false);
+                }}
+                onSelect={(album) => {
+                    setmediaFilter(album);
+                }}
+                title={'Select Album'}
+                visible={showAlbums}
+            />
+
             <View style={styles.header}>
                 <View style={{
                     flexDirection: 'row',
@@ -421,7 +381,9 @@ const ImageSelector = ({ navigation, onClose }) => {
                         flexDirection: 'row',
                         alignItems: 'center',
                     }}>
-                        <Text style={[styles.poppinsFont, { color: 'white' }]}>Recent</Text>
+                        <Text style={[styles.poppinsFont, { color: 'white' }]}>
+                            {mediaFilter ? mediaFilter.title : 'Recent'}
+                        </Text>
                         <MaterialCommunityIcons name="chevron-down" size={18} color="white" />
                     </TouchableOpacity>
 
@@ -506,7 +468,7 @@ const styles = StyleSheet.create({
         position: 'relative',
     },
     itemInvisible: {
-        backgroundColor: '#363534',
+        backgroundColor: '#000',
     },
     image: {
         width: (screenWidth / numColumns) - 2,

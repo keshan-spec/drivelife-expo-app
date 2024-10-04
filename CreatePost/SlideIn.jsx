@@ -7,10 +7,10 @@ import TagSuggestions, { TagSuggestionSkeleton } from './Components/TagEntity';
 import debounce from 'lodash.debounce'; // Assuming lodash.debounce is installed
 import { usePostProvider } from './ContextProvider';
 
-const BottomSheet = ({ visible, onClose, title, activePanel, onTag }) => {
+const BottomSheet = ({ visible, onClose, title, activePanel }) => {
     const translateY = useRef(new Animated.Value(500)).current;
 
-    const { taggedEntities, activeImageIndex } = usePostProvider();
+    const { taggedEntities, activeImageIndex, setTaggedEntities } = usePostProvider();
 
     const [taggableEntities, setTaggableEntities] = useState([]);
     const [searching, setSearching] = useState(false);
@@ -50,6 +50,7 @@ const BottomSheet = ({ visible, onClose, title, activePanel, onTag }) => {
             }).start();
         } else {
             setSearching(false);
+            setSearchQ('');
             setTaggableEntities([]);
         }
     }, [visible]);
@@ -65,14 +66,20 @@ const BottomSheet = ({ visible, onClose, title, activePanel, onTag }) => {
     };
 
     const fetchTaggableEntitiesDebounced = useCallback(debounce(async (text) => {
-        if (text.length <= 3) {
+        if (text.length <= 2) {
             return;
         }
 
         try {
             setSearching(true);
             const response = await fetchTaggableEntites(1, text, taggedEntities, activePanel);
-            setTaggableEntities(response);
+
+            const data = response;
+            if (activePanel === 'car' && data.length === 0) {
+                data.push({ name: text, type: 'car', entity_id: 'search_q', image: 'search_q' });
+            }
+
+            setTaggableEntities(data);
             setSearching(false);
         } catch (error) {
             setSearching(false);
@@ -83,17 +90,50 @@ const BottomSheet = ({ visible, onClose, title, activePanel, onTag }) => {
     const onTextChange = (text) => {
         setSearchQ(text);
 
-        if (activePanel === 'car') {
-            return;
-        }
+        // if (activePanel === 'car') {
+        //     return;
+        // }
 
         if (!text) {
             setTaggableEntities([]);
             return;
         }
 
-
         fetchTaggableEntitiesDebounced(text);
+    };
+
+    const onVehicleTag = (reg, garageId = null) => {
+        // check if the searchQ is already tagged
+        const isTagged = taggedEntities.find((entity) =>
+            entity.label.replace(/\s+/g, '').toLowerCase() === reg.replace(/\s+/g, '').toLowerCase() &&
+            entity.index === activeImageIndex
+        );
+
+        if (isTagged) {
+            Alert.alert('Tag already exists', 'This tag is already added to the image');
+            return;
+        }
+
+        const entity = [{
+            x: 1,
+            y: 1,
+            index: activeImageIndex,
+            label: reg,
+            registration: reg,
+            id: garageId,
+            type: 'car',
+        }];
+
+        setTaggedEntities([...taggedEntities, ...entity]);
+    };
+
+    const onTag = (entity) => {
+        if (activePanel === 'car') {
+            onVehicleTag(entity[0].label, entity[0].id);
+            return;
+        }
+
+        setTaggedEntities([...taggedEntities, ...entity]);
     };
 
     return (
@@ -111,75 +151,26 @@ const BottomSheet = ({ visible, onClose, title, activePanel, onTag }) => {
                         {...panResponder.panHandlers}
                     >
                         <View style={styles.header}>
-                            <Text style={styles.headerText}>{title}</Text>
+                            <Text style={styles.headerText}>Tag {title}</Text>
                             <TouchableOpacity onPress={handleClose}>
                                 <MaterialCommunityIcons name="close" size={18} color="black" />
                             </TouchableOpacity>
                         </View>
 
                         <View style={styles.content}>
-                            {/* Search input */}
                             <TextInput
-                                placeholder="Search"
+                                placeholder={`Search ${title.toLowerCase()}...`}
                                 onChange={(e) => onTextChange(e.nativeEvent.text)}
                                 style={styles.input}
                             />
 
-                            {activePanel === 'car' && (
-                                <TouchableOpacity
-                                    style={{
-                                        backgroundColor: '#ae9159',
-                                        paddingHorizontal: 12,
-                                        paddingVertical: 8,
-                                        borderRadius: 4,
-                                        marginTop: 10,
-                                    }}
-                                    onPress={() => {
-                                        // check if the searchQ is already tagged
-                                        const isTagged = taggedEntities.find((entity) =>
-                                            entity.label.replace(/\s+/g, '').toLowerCase() === searchQ.replace(/\s+/g, '').toLowerCase() &&
-                                            entity.index === activeImageIndex
-                                        );
-
-                                        if (isTagged) {
-                                            // alert
-                                            Alert.alert('Tag already exists', 'This tag is already added to the image', [
-                                                {
-                                                    text: 'OK',
-                                                    onPress: () => { },
-                                                },
-                                            ]);
-                                            return;
-                                        }
-
-                                        onTag([{
-                                            x: 1,
-                                            y: 1,
-                                            index: activeImageIndex,
-                                            label: searchQ,
-                                            registration: searchQ,
-                                            type: 'car',
-                                        }]);
-                                        onClose();
-                                    }}>
-                                    <Text
-                                        style={{
-                                            color: 'white',
-                                            fontSize: 14,
-                                            textAlign: 'center',
-                                            fontFamily: 'Poppins_600SemiBold',
-                                        }}
-                                    >
-                                        + Add
-                                    </Text>
-                                </TouchableOpacity>
-                            )}
-
-                            {searching && <TagSuggestionSkeleton />}
                             <TagSuggestions
                                 data={taggableEntities}
                                 setTaggedData={onTag}
+                                activePanel={activePanel}
+                                searching={searching}
                             />
+                            {(searching && activePanel !== 'car') && <TagSuggestionSkeleton />}
                         </View>
                     </Animated.View>
                 </View>

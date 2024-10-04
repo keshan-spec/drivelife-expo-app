@@ -1,5 +1,4 @@
-import { getProgress } from './CreatePost/actions/progress';
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Image } from 'react-native';
 
 const ProgressNotification = ({
@@ -7,17 +6,6 @@ const ProgressNotification = ({
 }: {
     media_uri: string;
 }) => {
-    const [progress, setProgress] = useState(getProgress());
-
-    // useEffect(() => {
-    //     const interval = setInterval(() => {
-    //         setProgress(getProgress());
-    //     }, 500); // Update every 500ms
-
-    //     return () => clearInterval(interval); // Cleanup on unmount
-    // }, []);
-
-
     return (
         <View style={styles.container}>
             <View style={styles.progressContainer}>

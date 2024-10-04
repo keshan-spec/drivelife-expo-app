@@ -540,7 +540,6 @@ export const fetchTaggableEntites = async (user_id, search, tagged_entities, ent
             break;
     }
 
-    // const url = is_vehicle ? `${API_URL}/wp-json/app/v1/get-taggable-vehicles` : `${API_URL}/wp-json/app/v1/get-taggable-entities`;
     try {
         const response = await fetch(url, {
             cache: "no-cache",
@@ -549,6 +548,28 @@ export const fetchTaggableEntites = async (user_id, search, tagged_entities, ent
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({ search, user_id, tagged_entities }),
+        });
+
+        const data = await response.json();
+        if (!response.ok || response.status !== 200) {
+            throw new Error(data.message);
+        }
+
+        return data;
+    } catch (e) {
+        return [];
+    }
+};
+
+export const fetchUserGarage = async (user_id) => {
+    try {
+        const response = await fetch(`${API_URL}/wp-json/app/v1/get-user-garage`, {
+            cache: "no-cache",
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ user_id }),
         });
 
         const data = await response.json();

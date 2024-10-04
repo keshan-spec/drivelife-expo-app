@@ -39,7 +39,7 @@ function Collapsible() {
     const [showSheet, setShowSheet] = useState(false);
     const [activePanel, setActivePanel] = useState('users');
 
-    const { taggedEntities, setTaggedEntities, activeImageIndex } = usePostProvider();
+    const { taggedEntities, activeImageIndex, setTaggedEntities } = usePostProvider();
 
     const toggleSheet = useCallback(() => {
         setShowSheet(!showSheet);
@@ -119,6 +119,7 @@ function Collapsible() {
     };
 
     function renderHeader(section, activePanel) {
+
         return (
             <View style={styles.accordHeader}>
                 <Text style={styles.accordTitle}>{section.title}</Text>
@@ -165,13 +166,13 @@ function Collapsible() {
     const getTitle = () => {
         switch (activePanel) {
             case 'users':
-                return 'Tag Users';
+                return 'Users';
             case 'car':
-                return 'Tag Registrations';
+                return 'Registrations';
             case 'events':
-                return 'Tag Events';
+                return 'Events';
             default:
-                return 'Tag Users';
+                return 'Users';
         }
     };
 
@@ -193,10 +194,6 @@ function Collapsible() {
                     setShowSheet(false);
                 }}
                 activePanel={activePanel}
-                onTag={(data) => {
-                    // toggleSheet();
-                    setTaggedEntities([...taggedEntities, ...data]);
-                }}
                 title={getTitle()}
             />
         </View>

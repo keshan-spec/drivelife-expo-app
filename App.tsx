@@ -19,7 +19,6 @@ import ProgressNotification from './ProgressNotif';
 import { useNetInfoInstance } from "@react-native-community/netinfo";
 import { OfflineView } from './OfflineView';
 
-// const URL = 'https://app.mydrivelife.com';
 const URL = Constants.expoConfig?.extra?.appUrl || 'https://app.mydrivelife.com';
 
 const options = {
@@ -411,6 +410,7 @@ export default function App() {
         <CreatePost
           onClose={() => setView('webview')}
           onComplete={onPostCreateBtnPress}
+          userId={carcalSession}
         />
       )}
 

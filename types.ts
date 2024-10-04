@@ -21,4 +21,5 @@ export interface TagEntity {
     start_date?: string;
     end_date?: string;
     location?: string;
+    vehicle_name?: string;
 }

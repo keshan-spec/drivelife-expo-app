@@ -378,6 +378,17 @@ const ImageSelector = ({ navigation, onClose }) => {
 
     const onSelectImage = (image) => {
         if (isMultiSelect) {
+            // max 5 photos
+            if (selectedPhotos.length >= 5) {
+                // if image is already selected, remove it
+                if (selectedPhotos.some(photo => photo.uri === image.uri)) {
+                    setSelectedPhotos(selectedPhotos.filter(photo => photo.uri !== image.uri));
+                } else {
+                    Alert.alert('Oops!', 'You can only select up to 5 photos');
+                }
+                return;
+            }
+
             setSelectedPhotos((prevSelectedPhotos) => {
                 if (prevSelectedPhotos.some(photo => photo.uri === image.uri)) {
                     return prevSelectedPhotos.filter(photo => photo.uri !== image.uri);

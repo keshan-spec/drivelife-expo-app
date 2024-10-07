@@ -1,8 +1,8 @@
 
 import useKeyboardVisible from '../../hooks/useKeyboardVisible';
 import { usePostProvider } from '../ContextProvider';
-import React from 'react';
-import { View, Text, FlatList, TouchableOpacity, Image, StyleSheet, ScrollView } from 'react-native';
+import React, { useCallback } from 'react';
+import { View, Text, FlatList, TouchableOpacity, Image, StyleSheet, ScrollView, Alert } from 'react-native';
 import { TagEntity } from 'types';
 
 // Example data and placeholder image
@@ -13,16 +13,20 @@ interface TagSuggestionsProps {
     setTaggedData: (data: any) => void;
     activePanel: string;
     searching: boolean;
-    taggedData?: TagEntity[];
 }
 
-const TagSuggestions = ({ data, setTaggedData, activePanel, searching, taggedData }: TagSuggestionsProps) => {
-    const { activeImageIndex, userGarage } = usePostProvider();
-
-    const [localTaggedData, setLocalTaggedData] = React.useState<TagEntity[]>(taggedData || []);
+const TagSuggestions = ({ data, setTaggedData, activePanel, searching }: TagSuggestionsProps) => {
+    const { activeImageIndex, userGarage, taggedEntities } = usePostProvider();
     const isKeyboardVisible = useKeyboardVisible();
 
-    const handleTagClick = (entity: TagEntity) => {
+    const handleTagClick = useCallback((entity: TagEntity) => {
+        const isTagged = taggedEntities.find((tag: any) => tag.id == entity.entity_id && tag.index == activeImageIndex);
+
+        if (isTagged) {
+            Alert.alert('Already Tagged', 'This entity has already been tagged in this image.');
+            return;
+        }
+
         setTaggedData([{
             x: 1,
             y: 1,
@@ -30,10 +34,9 @@ const TagSuggestions = ({ data, setTaggedData, activePanel, searching, taggedDat
             label: entity.name,
             type: entity.type,
             id: entity.entity_id,
+            arr_idx: taggedEntities.length,
         }]);
-
-        setLocalTaggedData([...localTaggedData, entity]);
-    };
+    }, [activeImageIndex, taggedEntities]);
 
     const renderItem = ({ item }: {
         item: TagEntity;
@@ -82,7 +85,7 @@ const TagSuggestions = ({ data, setTaggedData, activePanel, searching, taggedDat
 
                 <TouchableOpacity onPress={() => handleTagClick(item)}
                     style={{
-                        backgroundColor: '#ae9159',
+                        backgroundColor: taggedEntities.find((tag: any) => tag.id == item.entity_id && tag.index == activeImageIndex) ? '#5f5f5f' : '#ae9159',
                         paddingHorizontal: 12,
                         paddingVertical: 6,
                         borderRadius: 4,
@@ -95,7 +98,7 @@ const TagSuggestions = ({ data, setTaggedData, activePanel, searching, taggedDat
                             textAlign: 'center',
                             fontFamily: 'Poppins_600SemiBold',
                         }}>
-                        {localTaggedData.find((tag) => tag.entity_id === item.entity_id) ? 'Tagged' : '+ Tag'}
+                        {taggedEntities.find((tag: any) => tag.id == item.entity_id && tag.index == activeImageIndex) ? 'Tagged' : '+ Tag'}
                     </Text>
                 </TouchableOpacity>
             </View>
@@ -144,7 +147,7 @@ const TagSuggestions = ({ data, setTaggedData, activePanel, searching, taggedDat
                     entity_id: item.id,
                 })}
                     style={{
-                        backgroundColor: '#ae9159',
+                        backgroundColor: taggedEntities.find((tag: any) => tag.id == item.id && tag.index == activeImageIndex) ? '#5f5f5f' : '#ae9159',
                         paddingHorizontal: 12,
                         paddingVertical: 6,
                         borderRadius: 4,
@@ -157,7 +160,7 @@ const TagSuggestions = ({ data, setTaggedData, activePanel, searching, taggedDat
                             textAlign: 'center',
                             fontFamily: 'Poppins_600SemiBold',
                         }}>
-                        {localTaggedData.find((tag) => tag.entity_id == item.id) ? 'Tagged' : '+ Tag'}
+                        {taggedEntities.find((tag: any) => tag.id == item.id && tag.index == activeImageIndex) ? 'Tagged' : '+ Tag'}
                     </Text>
                 </TouchableOpacity>
             </View>

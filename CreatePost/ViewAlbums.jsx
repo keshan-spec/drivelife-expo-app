@@ -47,12 +47,12 @@ const ViewAlbums = ({ visible, onClose, title, onSelect }) => {
 
     const fetchAlbumsWithThumbnails = async () => {
         try {
-            const fetchedAlbums = await CameraRoll.getAlbums({ assetType: 'Photos' });
+            const fetchedAlbums = await CameraRoll.getAlbums({ assetType: 'All' });
             const albumsWithThumbnails = await Promise.all(
                 fetchedAlbums.map(async (album) => {
                     const photos = await CameraRoll.getPhotos({
                         first: 1,
-                        assetType: 'Photos',
+                        assetType: 'All',
                         groupName: album.title,
                     });
                     const thumbnail = photos.edges.length > 0 ? photos.edges[0].node.image.uri : null;
@@ -86,24 +86,32 @@ const ViewAlbums = ({ visible, onClose, title, onSelect }) => {
         });
     };
 
-    const renderAlbum = ({ item }) => (
-        <TouchableOpacity style={styles.albumItem} onPress={() => handleAlbumSelect(item)}>
-            <FastImage
-                style={styles.albumImage}
-                source={{
-                    uri: item.thumbnail,
-                    priority: FastImage.priority.normal,
-                }}
-                resizeMode={FastImage.resizeMode.cover}
-            />
-            <Text style={styles.albumText}>
-                {item.title}
-            </Text>
-            <Text style={styles.albumSubText}>
-                {item.count}
-            </Text>
-        </TouchableOpacity>
-    );
+    const renderAlbum = ({ item }) => {
+        let title = item.title;
+        // trim the album title if it's too long
+        if (title.length > 18) {
+            title = title.substring(0, 18) + '...';
+        }
+
+        return (
+            <TouchableOpacity style={styles.albumItem} onPress={() => handleAlbumSelect(item)}>
+                <FastImage
+                    style={styles.albumImage}
+                    source={{
+                        uri: item.thumbnail,
+                        priority: FastImage.priority.normal,
+                    }}
+                    resizeMode={FastImage.resizeMode.cover}
+                />
+                <Text style={styles.albumText}>
+                    {title}
+                </Text>
+                <Text style={styles.albumSubText}>
+                    {item.count}
+                </Text>
+            </TouchableOpacity>
+        );
+    };
 
     const renderIconButton = (iconName, label, filterData) => (
         <TouchableOpacity style={styles.iconButton}
@@ -118,61 +126,59 @@ const ViewAlbums = ({ visible, onClose, title, onSelect }) => {
     );
 
     return (
-        <SafeAreaView>
-            <Modal
-                transparent
-                visible={visible}
-                animationType="none"
-                onRequestClose={handleClose}
-            >
-                <View style={styles.overlay}>
-                    <TouchableOpacity style={styles.background} onPress={handleClose} />
-                    <Animated.View
-                        style={[styles.bottomSheetContainer, { transform: [{ translateY }] }]}
+        <Modal
+            transparent
+            visible={visible}
+            animationType="slide"
+            onRequestClose={handleClose}
+        >
+            <View style={styles.overlay}>
+                <TouchableOpacity style={styles.background} onPress={handleClose} />
+                <Animated.View
+                    style={[styles.bottomSheetContainer, { transform: [{ translateY }] }]}
+                >
+                    <View
+                        style={styles.header}
+                        {...panResponder.panHandlers} // Apply panResponder only to the header
                     >
-                        <View
-                            style={styles.header}
-                            {...panResponder.panHandlers} // Apply panResponder only to the header
-                        >
-                            <Text></Text>
-                            <Text style={styles.headerText}>Albums</Text>
-                            <TouchableOpacity onPress={handleClose}>
-                                <MaterialCommunityIcons name="close" size={20} color="black" />
-                            </TouchableOpacity>
-                        </View>
+                        <Text></Text>
+                        <Text style={styles.headerText}>Albums</Text>
+                        <TouchableOpacity onPress={handleClose}>
+                            <MaterialCommunityIcons name="close" size={20} color="black" />
+                        </TouchableOpacity>
+                    </View>
 
-                        {/* Buttons Row */}
-                        <View style={styles.buttonsContainer}>
-                            {renderIconButton('clock-outline', 'Recent', {
-                                title: 'Recent',
-                                mediaType: ['video', 'photo'],
-                            })}
-                            {/* {renderIconButton('star-outline', 'Favourites', {
+                    {/* Buttons Row */}
+                    <View style={styles.buttonsContainer}>
+                        {renderIconButton('clock-outline', 'Recent', {
+                            title: 'Recent',
+                            mediaType: ['video', 'photo'],
+                        })}
+                        {/* {renderIconButton('star-outline', 'Favourites', {
                                 title: 'Favourites',
                                 mediaType: ['video', 'photo'],
                             })} */}
-                            {renderIconButton('image-outline', 'Photos', {
-                                title: 'Photos',
-                                mediaType: ['photo'],
-                            })}
-                            {renderIconButton('video-outline', 'Videos', {
-                                title: 'Videos',
-                                mediaType: ['video'],
-                            })}
-                        </View>
+                        {renderIconButton('image-outline', 'Photos', {
+                            title: 'Photos',
+                            mediaType: ['photo'],
+                        })}
+                        {renderIconButton('video-outline', 'Videos', {
+                            title: 'Videos',
+                            mediaType: ['video'],
+                        })}
+                    </View>
 
-                        {/* Albums Grid */}
-                        <FlatList
-                            data={albums}
-                            renderItem={renderAlbum}
-                            keyExtractor={(item) => item.title}
-                            numColumns={3}
-                            contentContainerStyle={styles.albumList}
-                        />
-                    </Animated.View>
-                </View>
-            </Modal>
-        </SafeAreaView>
+                    {/* Albums Grid */}
+                    <FlatList
+                        data={albums}
+                        renderItem={renderAlbum}
+                        keyExtractor={(item) => item.title}
+                        numColumns={3}
+                        contentContainerStyle={styles.albumList}
+                    />
+                </Animated.View>
+            </View>
+        </Modal>
     );
 };
 

@@ -205,6 +205,7 @@ const ImageSelector = ({ navigation, onClose }) => {
                 }
             }
 
+            setLoading(true);
             const gallery = await MediaLibrary.getAssetsAsync({
                 first: 20 * page, // Pagination: 20 items per page
                 mediaType: mediaType,
@@ -252,12 +253,15 @@ const ImageSelector = ({ navigation, onClose }) => {
                     setSelectedPhotos([nonDisabledPhoto]);
                 }
             }
+            setLoading(false);
+
         } catch (error) {
             console.log('Error getting photos', error);
             showSettingsAlert({
                 title: 'Storage Permission',
                 message: 'Storage access is required to select photos. Please enable it in the settings.',
             });
+            setLoading(false);
         }
     };
 
@@ -376,7 +380,7 @@ const ImageSelector = ({ navigation, onClose }) => {
                 <View style={styles.buttonContainer}>
                     <TouchableOpacity onPress={openImagePicker} style={{
                         padding: 10,
-                        marginLeft: 10,
+                        // marginLeft: 10,
                         display: 'flex',
                         flexDirection: 'row',
                         alignItems: 'center',
@@ -415,6 +419,13 @@ const ImageSelector = ({ navigation, onClose }) => {
                         </TouchableOpacity> */}
                     </View>
                 </View>
+
+                {(loading && photos.length === 0) ? (
+                    <Text style={{ color: 'white', backgroundColor: '#000', textAlign: 'center', paddingTop: 20 }}>
+                        Loading...
+                    </Text>
+                ) : null}
+
                 <PhotoGrid
                     photos={photos}
                     loadMorePhotos={loadMorePhotos}

@@ -122,6 +122,7 @@ const BottomSheet = ({ visible, onClose, title, activePanel }) => {
             registration: reg,
             id: garageId,
             type: 'car',
+            arr_idx: taggedEntities.length,
         }];
 
         setTaggedEntities([...taggedEntities, ...entity]);

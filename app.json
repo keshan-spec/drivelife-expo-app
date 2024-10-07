@@ -3,7 +3,8 @@
     "name": "DriveLife",
     "slug": "carcal-v1",
     "scheme": "carcalendar",
-    "version": "3.2.0",
+    "version": "3.2.1",
+    "owner": "drivenation",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "splash": {

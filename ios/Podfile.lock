@@ -136,6 +136,18 @@ PODS:
     - hermes-engine/Pre-built (= 0.71.14)
   - hermes-engine/Pre-built (0.71.14)
   - libevent (2.1.12)
+  - libwebp (1.3.2):
+    - libwebp/demux (= 1.3.2)
+    - libwebp/mux (= 1.3.2)
+    - libwebp/sharpyuv (= 1.3.2)
+    - libwebp/webp (= 1.3.2)
+  - libwebp/demux (1.3.2):
+    - libwebp/webp
+  - libwebp/mux (1.3.2):
+    - libwebp/demux
+  - libwebp/sharpyuv (1.3.2)
+  - libwebp/webp (1.3.2):
+    - libwebp/sharpyuv
   - OneSignalXCFramework (3.12.4):
     - OneSignalXCFramework/OneSignalCore (= 3.12.4)
     - OneSignalXCFramework/OneSignalExtension (= 3.12.4)
@@ -399,7 +411,7 @@ PODS:
     - glog
   - react-native-background-actions (4.0.0):
     - React-Core
-  - react-native-cameraroll (7.8.1):
+  - react-native-cameraroll (7.8.3):
     - RCT-Folly (= 2021.07.22.00)
     - React-Core
   - react-native-compressor (1.8.25):
@@ -507,6 +519,10 @@ PODS:
     - React-jsi (= 0.71.14)
     - React-logger (= 0.71.14)
     - React-perflogger (= 0.71.14)
+  - RNFastImage (8.6.3):
+    - React-Core
+    - SDWebImage (~> 5.11.1)
+    - SDWebImageWebPCoder (~> 0.8.4)
   - RNFS (2.20.0):
     - React-Core
   - RNGestureHandler (2.9.0):
@@ -544,6 +560,12 @@ PODS:
     - RCT-Folly (= 2021.07.22.00)
     - React-Core
     - React-RCTImage
+  - SDWebImage (5.11.1):
+    - SDWebImage/Core (= 5.11.1)
+  - SDWebImage/Core (5.11.1)
+  - SDWebImageWebPCoder (0.8.5):
+    - libwebp (~> 1.0)
+    - SDWebImage/Core (~> 5.10)
   - UMAppLoader (4.1.2)
   - Yoga (1.14.0)
 
@@ -617,6 +639,7 @@ DEPENDENCIES:
   - React-RCTVibration (from `../node_modules/react-native/Libraries/Vibration`)
   - React-runtimeexecutor (from `../node_modules/react-native/ReactCommon/runtimeexecutor`)
   - ReactCommon/turbomodule/core (from `../node_modules/react-native/ReactCommon`)
+  - RNFastImage (from `../node_modules/react-native-fast-image`)
   - RNFS (from `../node_modules/react-native-fs`)
   - RNGestureHandler (from `../node_modules/react-native-gesture-handler`)
   - RNPermissions (from `../node_modules/react-native-permissions`)
@@ -630,7 +653,10 @@ SPEC REPOS:
     - ffmpeg-kit-ios-video
     - fmt
     - libevent
+    - libwebp
     - OneSignalXCFramework
+    - SDWebImage
+    - SDWebImageWebPCoder
 
 EXTERNAL SOURCES:
   boost:
@@ -765,6 +791,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/runtimeexecutor"
   ReactCommon:
     :path: "../node_modules/react-native/ReactCommon"
+  RNFastImage:
+    :path: "../node_modules/react-native-fast-image"
   RNFS:
     :path: "../node_modules/react-native-fs"
   RNGestureHandler:
@@ -814,6 +842,7 @@ SPEC CHECKSUMS:
   glog: 04b94705f318337d7ead9e6d17c019bd9b1f6b1b
   hermes-engine: d7cc127932c89c53374452d6f93473f1970d8e88
   libevent: 4049cae6c81cdb3654a443be001fb9bdceff7913
+  libwebp: 1786c9f4ff8a279e4dac1e8f385004d5fc253009
   OneSignalXCFramework: 087934ab0d4d7445fcf1c015c7c782359e26c020
   RCT-Folly: 424b8c9a7a0b9ab2886ffe9c3b041ef628fd4fb1
   RCTRequired: e9df143e880d0e879e7a498dc06923d728809c79
@@ -830,7 +859,7 @@ SPEC CHECKSUMS:
   React-jsinspector: 7bf923954b4e035f494b01ac16633963412660d7
   React-logger: 655ff5db8bd922acfbe76a4983ffab048916343e
   react-native-background-actions: a290b3f36463c2c6b7372c17378619942f630b17
-  react-native-cameraroll: eac34a256ca70617945a4a7d9ecf03daa78ae86c
+  react-native-cameraroll: 6d252600d122f6bc10d99d6ab82cdfd2c8bef70a
   react-native-compressor: a94c3053b5e5d1d7a8e35dd04803130d87adfa43
   react-native-geolocation: 0f7fe8a4c2de477e278b0365cce27d089a8c5903
   react-native-image-picker: 51fdb07f7ef722988c8a219e1416153760a25e4d
@@ -851,11 +880,14 @@ SPEC CHECKSUMS:
   React-RCTVibration: 64e412b9ac684c4edc938fa1187135ada9af7faf
   React-runtimeexecutor: ffe826b7b1cfbc32a35ed5b64d5886c0ff75f501
   ReactCommon: 7f3dd5e98a9ec627c6b03d26c062bf37ea9fc888
+  RNFastImage: 5c9c9fed9c076e521b3f509fe79e790418a544e8
   RNFS: 4ac0f0ea233904cb798630b3c077808c06931688
   RNGestureHandler: 071d7a9ad81e8b83fe7663b303d132406a7d8f39
   RNPermissions: 84efd536e1644b4a4e7dcefa8a7bf2b29db56ca0
   RNReanimated: cc5e3aa479cb9170bcccf8204291a6950a3be128
   RNScreens: 0bd9eec783bed1032e02a4db9976dae1664a5c7b
+  SDWebImage: a7f831e1a65eb5e285e3fb046a23fcfbf08e696d
+  SDWebImageWebPCoder: 908b83b6adda48effe7667cd2b7f78c897e5111d
   UMAppLoader: d1cd37524ea948f9e695722994496784a6d6213c
   Yoga: e71803b4c1fff832ccf9b92541e00f9b873119b9
 

@@ -5,6 +5,7 @@
     "scheme": "carcalendar",
     "version": "3.0.0",
     "orientation": "portrait",
+    "owner": "drivenation",
     "userInterfaceStyle": "dark",
     "splash": {
       "image": "./assets/splash.png",

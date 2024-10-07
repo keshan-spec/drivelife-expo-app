@@ -22,6 +22,13 @@ const SharePostStep1 = ({ navigation, onComplete }) => {
         if (selectedPhotos.length === 1) {
             const uri = selectedPhotos[0].isPicker ? selectedPhotos[0].localUri : selectedPhotos[0].uri;
 
+            if (isVideo(selectedPhotos[0])) {
+                return <Image
+                    source={{ uri: uri }}
+                    style={styles.selectedImage}
+                />;
+            }
+
             return (
                 <TouchableWithoutFeedback onPress={() => setEditImageIdx(0)} style={{ flex: 1 }}>
                     <Image

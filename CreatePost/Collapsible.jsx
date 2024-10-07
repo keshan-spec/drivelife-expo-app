@@ -45,6 +45,11 @@ function Collapsible() {
         setShowSheet(!showSheet);
     }, [showSheet]);
 
+    const onTagRemove = (arr_idx) => {
+        setTaggedEntities(taggedEntities.filter((tag) => tag.arr_idx !== arr_idx));
+    };
+
+
     const renderTagUsers = () => {
         return (
             <View style={styles.tagBadgeContainer}>
@@ -54,7 +59,8 @@ function Collapsible() {
                         label={entity.label}
                         type={entity.type}
                         onRemove={() => {
-                            setTaggedEntities(taggedEntities.filter((_, i) => i !== index));
+                            onTagRemove(entity.arr_idx);
+                            // setTaggedEntities(taggedEntities.filter((_, i) => i !== index));
                         }}
                     />
                 ))}
@@ -71,7 +77,8 @@ function Collapsible() {
                         label={entity.label}
                         type={entity.type}
                         onRemove={() => {
-                            setTaggedEntities(taggedEntities.filter((_, i) => i !== index));
+                            onTagRemove(entity.arr_idx);
+                            // setTaggedEntities(taggedEntities.filter((_, i) => i !== index));
                         }}
                     />
                 ))}
@@ -88,7 +95,8 @@ function Collapsible() {
                         label={entity.label}
                         type={entity.type}
                         onRemove={() => {
-                            setTaggedEntities(taggedEntities.filter((_, i) => i !== index));
+                            onTagRemove(entity.arr_idx);
+                            // setTaggedEntities(taggedEntities.filter((_, i) => i !== index));
                         }}
                     />
                 ))}

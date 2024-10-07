@@ -122,6 +122,7 @@ const BottomSheet = ({ visible, onClose, title, activePanel }) => {
             registration: reg,
             id: garageId,
             type: 'car',
+            arr_idx: taggedEntities.length,
         }];
 
         setTaggedEntities([...taggedEntities, ...entity]);
@@ -162,6 +163,7 @@ const BottomSheet = ({ visible, onClose, title, activePanel }) => {
                                 placeholder={`Search ${title.toLowerCase()}...`}
                                 onChange={(e) => onTextChange(e.nativeEvent.text)}
                                 style={styles.input}
+                                placeholderTextColor={'#6c757d'}
                             />
 
                             <TagSuggestions

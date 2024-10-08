@@ -213,7 +213,7 @@ export default function App() {
 
     // Handles the AppState
     const subscription = AppState.addEventListener('change', nextAppState => {
-      if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
+      if (appState.current !== 'active' && nextAppState === 'active') {
         if (permissionsLocation.granted == true) {
           getCurrentPosition();
         }
@@ -297,7 +297,7 @@ export default function App() {
         setLocation(pos.coords);
       }
     }, (error) => {
-      Alert.alert("CarCalendar", error.message, [
+      Alert.alert("DriveLife", error.message, [
         { text: "OK" },
         {
           text: "Settings",
@@ -316,16 +316,6 @@ export default function App() {
 
     try {
       if (data === 'exit_app') {
-        // Display a confirmation alert before closing the app
-        // Alert.alert(
-        //   'Exit App',
-        //   'Are you sure you want to exit?',
-        //   [
-        //     { text: 'Cancel', style: 'cancel' },
-        //     { text: 'Yes', onPress: () => BackHandler.exitApp() },
-        //   ],
-        //   { cancelable: false }
-        // );
         BackHandler.exitApp();
         return;
       }
@@ -466,6 +456,7 @@ export default function App() {
             }}
             javaScriptEnabled
             allowsInlineMediaPlayback
+            allowsFullscreenVideo={false}
             source={{ uri: `${URL}${deepLinkUrl ? '?deeplink=' + deepLinkUrl : ''}` }}
             onMessage={onMessage}
             onLoadProgress={({ nativeEvent }) => {

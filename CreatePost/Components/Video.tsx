@@ -26,9 +26,13 @@ const CustomVideo = ({ video }: CustomVideoProps) => {
 
     useEffect(() => {
         const loadVideo = async () => {
-            // check if the video is already in the media library
-            const asset = await MediaLibrary.getAssetInfoAsync(video.id);
-            setMedia(asset);
+            try {
+                // check if the video is already in the media library
+                const asset = await MediaLibrary.getAssetInfoAsync(video.id);
+                setMedia(asset);
+            } catch (error) {
+                console.log('Error loading video', error);
+            }
         };
 
         loadVideo();

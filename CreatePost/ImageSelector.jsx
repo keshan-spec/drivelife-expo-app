@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, memo, useMemo } from 'react';
-import { View, Image, FlatList, StyleSheet, Dimensions, SafeAreaView, TouchableOpacity, Text, Alert, ActivityIndicatorBase, ActivityIndicator } from 'react-native';
+import { View, Image, StyleSheet, Dimensions, SafeAreaView, TouchableOpacity, Text, Alert, ActivityIndicator } from 'react-native';
 import * as MediaLibrary from 'expo-media-library';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 // https://icons.expo.fyi/Index
@@ -19,126 +19,10 @@ import { requestIOSMediaPermissions } from '../utils';
 import ViewAlbums from './ViewAlbum';
 import FastImage from 'react-native-fast-image';
 import { CameraRoll } from '@react-native-camera-roll/camera-roll';
+import PhotoGrid from './Components/GalleryList';
 
-const numColumns = 4;
 const screenWidth = Dimensions.get('window').width;
 const MAX_FILE_SIZE = 100 * 1024 * 1024;
-const IMAGE_SIZE = 50;
-
-const formatData = (photos, numColumns) => {
-    const formattedPhotos = [...photos];  // Create a shallow copy of the array
-    const numberOfFullRows = Math.floor(formattedPhotos.length / numColumns);
-
-    let numberOfElementsLastRow = formattedPhotos.length - (numberOfFullRows * numColumns);
-    while (numberOfElementsLastRow !== numColumns && numberOfElementsLastRow !== 0) {
-        formattedPhotos.push({ key: `blank-${numberOfElementsLastRow}`, empty: true });
-        numberOfElementsLastRow++;
-    }
-
-    return formattedPhotos;
-};
-
-const getSelectMediaIndex = (selectedPhotos, image) => {
-    return selectedPhotos.findIndex(photo => photo.uri === image.uri);
-};
-
-const ImageTile = memo(({ image, onSelectImage, isMultiSelect }) => {
-    const { selectedPhotos } = usePostProvider();  // Make sure this hook doesn't cause extra re-renders
-
-    if (image.empty) {
-        return <View style={[styles.item, styles.itemInvisible]} />;
-    }
-
-    const isSelected = selectedPhotos.some(photo => photo.uri === image.uri);
-    const indexInSelectedPhotos = getSelectMediaIndex(selectedPhotos, image);
-
-    return (
-        <TouchableOpacity style={[styles.item, { opacity: image.disabled ? 0.2 : 1 }]} onPress={() => {
-            if (image.disabled) {
-                Alert.alert('Oops!', 'File too large - please select a video less than 30 seconds & under 100MB');
-                return;
-            }
-            onSelectImage(image);
-        }}>
-            <Image
-                source={{ uri: image.thumbnail, width: 60, height: 60, cache: 'force-cache' }}
-                style={[styles.image, isSelected && styles.selectedImageTile]}
-            />
-
-            {/* Multi-select icon logic */}
-            {isMultiSelect && (
-                isSelected ? (
-                    <View style={{
-                        position: 'absolute',
-                        top: 5,
-                        right: 5,
-                        backgroundColor: 'rgba(59, 84, 245, 0.5)',
-                        borderRadius: 9999,
-                        width: 25,
-                        height: 25,
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                    }}>
-                        <Text style={{ color: 'white' }}>{indexInSelectedPhotos + 1}</Text>
-                    </View>
-                ) : (
-                    <MaterialCommunityIcons
-                        name="checkbox-blank-circle-outline"
-                        size={25}
-                        color="white"
-                        style={{
-                            position: 'absolute',
-                            top: 5,
-                            right: 5,
-                        }}
-                    />
-                )
-            )}
-        </TouchableOpacity>
-    );
-}, (prevProps, nextProps) => (
-    prevProps.image.uri === nextProps.image.uri &&
-    prevProps.isMultiSelect === nextProps.isMultiSelect &&
-    prevProps.onSelectImage === nextProps.onSelectImage
-));
-
-const PhotoGrid = memo(({ photos, loadMorePhotos, onSelectImage, isMultiSelect, Loader }) => {
-    if (photos.length === 0) {
-        return (
-            <View style={{ textAlign: 'center', marginTop: 20, color: 'white', flex: 1, alignItems: 'center' }}>
-                <ActivityIndicator size="small" color="white" style={{ marginTop: 20 }} />
-            </View>
-        );
-    }
-
-    return (
-        <FlatList
-            disableVirtualization
-            data={formatData(photos, numColumns)}
-            style={styles.container}
-            renderItem={({ item, index }) => {
-                return (
-                    <ImageTile
-                        image={item}
-                        onSelectImage={onSelectImage}
-                        isMultiSelect={isMultiSelect}
-                    />
-                )
-            }}
-            removeClippedSubviews={true}
-            numColumns={numColumns}
-            keyExtractor={(item, index) => item.id}
-            onEndReached={loadMorePhotos}
-            onEndReachedThreshold={.5}
-            ListFooterComponent={Loader}
-            windowSize={5}
-            initialNumToRender={12}  // Render a limited number of items initially
-            getItemLayout={(data, index) => (
-                { length: IMAGE_SIZE, offset: IMAGE_SIZE * index, index }
-            )}
-        />
-    );
-});
 
 export async function checkAndRequestMediaLibraryPermissions() {
     try {
@@ -239,19 +123,34 @@ const ImageSelector = ({ navigation, onClose }) => {
 
             const images = await Promise.all(
                 assets.map(async (asset) => {
-                    const { localUri, } = await MediaLibrary.getAssetInfoAsync(asset.id);
+                    // Check if the file exists before accessing it
+                    const fileExists = await FileSystem.getInfoAsync(asset.uri);
+                    if (!fileExists.exists) {
+                        return null;
+                    }
+
+                    const { localUri } = await MediaLibrary.getAssetInfoAsync(asset.id);
                     const { size } = await stat(localUri);
 
-                    const { thumbnailBase64 } = await CameraRoll.getPhotoThumbnail(asset.id, {
-                        quality: 0.5,
-                        targetSize: {
-                            height: 20,
-                            width: 20,
-                        },
-                    })
+                    // let thumbImg = false;
+                    //     const { thumbnailBase64 } = await CameraRoll.getPhotoThumbnail(asset.id, {
+                    //         quality: 0.5,
+                    //         targetSize: {
+                    //             height: 20,
+                    //             width: 20,
+                    //         },
+                    //         allowNetworkAccess: true,
+                    //     })
+
+                    //     thumbImg = true;
+                    // } catch (error) {
+                    //     console.log('Error getting thumbnail', error);
+                    //     thumbImg = false;
+                    // }
 
                     const mimeType = asset.filename.split('.').pop();
                     const type = asset.mediaType === 'photo' ? 'image' : 'video';
+                    console.log('asset', asset.uri, localUri);
 
                     // max 100mb
                     const exceedsSize = size > MAX_FILE_SIZE;
@@ -259,7 +158,7 @@ const ImageSelector = ({ navigation, onClose }) => {
 
                     return {
                         uri: asset.uri,
-                        thumbnail: `data:image/${mimeType};base64,${thumbnailBase64}`,
+                        // thumbnail: thumbImg ? `data:image/${mimeType};base64,${thumbnailBase64}` : asset.uri,
                         localUri,
                         fileName: asset.filename,
                         fileSize: size,
@@ -273,14 +172,13 @@ const ImageSelector = ({ navigation, onClose }) => {
                 })
             );
 
-            // const filteredImages = images.filter((image) => image !== null);
-
+            const filteredImages = images.filter((image) => image !== null);
             // Append the new assets to the existing list
-            setPhotos((prevPhotos) => [...prevPhotos, ...images]);
+            setPhotos((prevPhotos) => [...prevPhotos, ...filteredImages]);
 
-            if (selectedPhotos.length === 0 && images.length > 0) {
+            if (selectedPhotos.length === 0 && filteredImages.length > 0) {
                 // get the first NON disabled photo
-                const nonDisabledPhoto = images.find(photo => !photo.disabled);
+                const nonDisabledPhoto = filteredImages.find(photo => !photo.disabled);
                 if (nonDisabledPhoto) {
                     setSelectedPhotos([nonDisabledPhoto]);
                 }
@@ -289,7 +187,7 @@ const ImageSelector = ({ navigation, onClose }) => {
             setLoading(false);
         } catch (error) {
             console.log('Error getting photos', error);
-            Alert.alert('Oops!', 'Error getting photos');
+            Alert.alert('Oops!', 'Error getting photos> ' + error.message);
             setLoading(false);
         }
     };
@@ -352,16 +250,12 @@ const ImageSelector = ({ navigation, onClose }) => {
         }
 
         return (
-            <FastImage
-                key={lastAddedPhoto.id}
-                source={{
-                    uri: lastAddedPhoto.localUri,
-                    priority: FastImage.priority.normal,
-                }}
+            <Image
+                key={lastAddedPhoto.uri}
+                source={{ uri: lastAddedPhoto.uri }}
                 style={styles.selectedImage}
-                resizeMode={FastImage.resizeMode.contain}
             />
-        );
+        )
     };
 
     const openImagePicker = () => {
@@ -542,10 +436,6 @@ const styles = StyleSheet.create({
     },
     itemInvisible: {
         backgroundColor: '#000',
-    },
-    image: {
-        width: (screenWidth / numColumns) - 2,
-        height: (screenWidth / numColumns) - 2,
     },
     selectedImageTile: {
         backgroundColor: 'rgba(255, 170, 10, 0.9)',

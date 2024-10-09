@@ -15,7 +15,7 @@ import * as Notifications from 'expo-notifications';
 import {
     Platform
 } from 'react-native';
-import compressVideo from './compress-video';
+// import compressVideo from './compress-video';
 
 const API_URL = Constants.expoConfig.extra.headlessAPIUrl;
 const BUCKET_NAME = Constants.expoConfig.extra.awsBucketName;
@@ -162,36 +162,36 @@ const compressMedia = async (media, type) => {
                 filename: `${uuid.v4()}.${extension}`,
             };
         } else if (type === 'video') {
-            if (fileSize < MIN_COMPRESSION_SIZE) {
-                return {
-                    uri: filePath,
-                    height: media.height,
-                    width: media.width,
-                    fileSize: fileSize,
-                    filename: `${fileName}.${fileExtension}`,
-                };
-            }
-
-            console.log(`Compressing ${type}> ${filePath} - ${fileSize}B`);
-            const compressedPath = await compressVideo(filePath, media.duration);
-            if (!compressedPath) {
-                throw new Error('Failed to compress video');
-            }
-
-            const {
-                size,
-                height,
-                width,
-                extension
-            } = await getVideoMetaData(compressedPath);
-
+            // if (fileSize < MIN_COMPRESSION_SIZE) {
             return {
-                uri: compressedPath,
-                height,
-                width,
-                fileSize: size,
-                filename: `${fileName}.${extension}`,
+                uri: filePath,
+                height: media.height,
+                width: media.width,
+                fileSize: fileSize,
+                filename: `${fileName}.${fileExtension}`,
             };
+            // }
+
+            // console.log(`Compressing ${type}> ${filePath} - ${fileSize}B`);
+            // const compressedPath = await compressVideo(filePath, media.duration);
+            // if (!compressedPath) {
+            //     throw new Error('Failed to compress video');
+            // }
+
+            // const {
+            //     size,
+            //     height,
+            //     width,
+            //     extension
+            // } = await getVideoMetaData(compressedPath);
+
+            // return {
+            //     uri: compressedPath,
+            //     height,
+            //     width,
+            //     fileSize: size,
+            //     filename: `${fileName}.${extension}`,
+            // };
         }
     } catch (error) {
         console.error('Error compressing media:', error);

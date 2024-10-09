@@ -58,7 +58,7 @@ elsif podfile_properties.key?('ios.flipper') then
 end
 
 target 'DriveLife' do
-  pod 'ffmpeg-kit-react-native', :subspecs => ['video'], :podspec => '../node_modules/ffmpeg-kit-react-native/ffmpeg-kit-react-native.podspec'
+  # pod 'ffmpeg-kit-react-native', :subspecs => ['video'], :podspec => '../node_modules/ffmpeg-kit-react-native/ffmpeg-kit-react-native.podspec'
 
   use_expo_modules!
   config = use_native_modules!

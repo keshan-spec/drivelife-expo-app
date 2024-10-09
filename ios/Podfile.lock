@@ -126,10 +126,6 @@ PODS:
     - React-Core (= 0.71.14)
     - React-jsi (= 0.71.14)
     - ReactCommon/turbomodule/core (= 0.71.14)
-  - ffmpeg-kit-ios-video (6.0)
-  - ffmpeg-kit-react-native/video (6.0.2):
-    - ffmpeg-kit-ios-video (= 6.0)
-    - React-Core
   - fmt (6.2.1)
   - glog (0.3.5)
   - hermes-engine (0.71.14):
@@ -422,7 +418,7 @@ PODS:
   - react-native-image-picker (7.1.2):
     - RCT-Folly (= 2021.07.22.00)
     - React-Core
-  - react-native-netinfo (11.4.0):
+  - react-native-netinfo (11.4.1):
     - React-Core
   - react-native-onesignal (4.5.1):
     - OneSignalXCFramework (= 3.12.4)
@@ -597,7 +593,6 @@ DEPENDENCIES:
   - EXUpdatesInterface (from `../node_modules/expo-updates-interface/ios`)
   - FBLazyVector (from `../node_modules/react-native/Libraries/FBLazyVector`)
   - FBReactNativeSpec (from `../node_modules/react-native/React/FBReactNativeSpec`)
-  - ffmpeg-kit-react-native/video (from `../node_modules/ffmpeg-kit-react-native/ffmpeg-kit-react-native.podspec`)
   - glog (from `../node_modules/react-native/third-party-podspecs/glog.podspec`)
   - hermes-engine (from `../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)
   - libevent (~> 2.1.12)
@@ -650,7 +645,6 @@ DEPENDENCIES:
 
 SPEC REPOS:
   trunk:
-    - ffmpeg-kit-ios-video
     - fmt
     - libevent
     - libwebp
@@ -713,8 +707,6 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/Libraries/FBLazyVector"
   FBReactNativeSpec:
     :path: "../node_modules/react-native/React/FBReactNativeSpec"
-  ffmpeg-kit-react-native:
-    :podspec: "../node_modules/ffmpeg-kit-react-native/ffmpeg-kit-react-native.podspec"
   glog:
     :podspec: "../node_modules/react-native/third-party-podspecs/glog.podspec"
   hermes-engine:
@@ -836,8 +828,6 @@ SPEC CHECKSUMS:
   EXUpdatesInterface: dd699d1930e28639dcbd70a402caea98e86364ca
   FBLazyVector: 12ea01e587c9594e7b144e1bfc86ac4d9ac28fde
   FBReactNativeSpec: b6ae48e67aaba46442f84d6f9ba598ccfbe2ee66
-  ffmpeg-kit-ios-video: d3a8a535570063b717f88da68f9089e213aa21ba
-  ffmpeg-kit-react-native: 3cea88c9c5cfad62e1465279ea7d800dfbba3b00
   fmt: ff9d55029c625d3757ed641535fd4a75fedc7ce9
   glog: 04b94705f318337d7ead9e6d17c019bd9b1f6b1b
   hermes-engine: d7cc127932c89c53374452d6f93473f1970d8e88
@@ -863,7 +853,7 @@ SPEC CHECKSUMS:
   react-native-compressor: a94c3053b5e5d1d7a8e35dd04803130d87adfa43
   react-native-geolocation: 0f7fe8a4c2de477e278b0365cce27d089a8c5903
   react-native-image-picker: 51fdb07f7ef722988c8a219e1416153760a25e4d
-  react-native-netinfo: e8e9cf28ede012e47603c9b35b2fa5b19b7bd71d
+  react-native-netinfo: f0a9899081c185db1de5bb2fdc1c88c202a059ac
   react-native-onesignal: 7bd44dbd031d8d57110c0203836ffc37ddead526
   react-native-safe-area-context: 39c2d8be3328df5d437ac1700f4f3a4f75716acc
   react-native-webview: 994b9f8fbb504d6314dc40d83f94f27c6831b3bf
@@ -891,6 +881,6 @@ SPEC CHECKSUMS:
   UMAppLoader: d1cd37524ea948f9e695722994496784a6d6213c
   Yoga: e71803b4c1fff832ccf9b92541e00f9b873119b9
 
-PODFILE CHECKSUM: 5fe1c6948455554cc7149521bc10e262bf6facef
+PODFILE CHECKSUM: edc2db3ff3f3143cf8b7e6b79613075ddc1cb2de
 
 COCOAPODS: 1.15.2

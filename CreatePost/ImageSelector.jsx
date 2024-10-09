@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Image, FlatList, StyleSheet, Dimensions, SafeAreaView, TouchableOpacity, Text, Alert } from 'react-native';
+import React, { useState, useEffect, useCallback, memo, useMemo } from 'react';
+import { View, Image, FlatList, StyleSheet, Dimensions, SafeAreaView, TouchableOpacity, Text, Alert, ActivityIndicatorBase, ActivityIndicator } from 'react-native';
 import * as MediaLibrary from 'expo-media-library';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 // https://icons.expo.fyi/Index
@@ -18,70 +18,56 @@ import * as FileSystem from 'expo-file-system';
 import { requestIOSMediaPermissions } from '../utils';
 import ViewAlbums from './ViewAlbum';
 import FastImage from 'react-native-fast-image';
+import { CameraRoll } from '@react-native-camera-roll/camera-roll';
 
 const numColumns = 4;
 const screenWidth = Dimensions.get('window').width;
 const MAX_FILE_SIZE = 100 * 1024 * 1024;
+const IMAGE_SIZE = 50;
 
 const formatData = (photos, numColumns) => {
-    const numberOfFullRows = Math.floor(photos.length / numColumns);
+    const formattedPhotos = [...photos];  // Create a shallow copy of the array
+    const numberOfFullRows = Math.floor(formattedPhotos.length / numColumns);
 
-    let numberOfElementsLastRow = photos.length - (numberOfFullRows * numColumns);
+    let numberOfElementsLastRow = formattedPhotos.length - (numberOfFullRows * numColumns);
     while (numberOfElementsLastRow !== numColumns && numberOfElementsLastRow !== 0) {
-        photos.push({ key: `blank-${numberOfElementsLastRow}`, empty: true });
+        formattedPhotos.push({ key: `blank-${numberOfElementsLastRow}`, empty: true });
         numberOfElementsLastRow++;
     }
 
-    return photos;
+    return formattedPhotos;
 };
 
 const getSelectMediaIndex = (selectedPhotos, image) => {
     return selectedPhotos.findIndex(photo => photo.uri === image.uri);
 };
 
-const PhotoGrid = ({ photos, loadMorePhotos, onSelectImage, selectedPhotos, isMultiSelect }) => {
-    const memoizedRenderItem = useCallback(({ item, index }) => {
-        if (item.empty) {
-            return <View style={[styles.item, styles.itemInvisible]} />;
-        }
+const ImageTile = memo(({ image, onSelectImage, isMultiSelect }) => {
+    const { selectedPhotos } = usePostProvider();  // Make sure this hook doesn't cause extra re-renders
 
-        const isSelected = selectedPhotos.some(photo => photo.uri === item.uri);
-        const indexInSelectedPhotos = getSelectMediaIndex(selectedPhotos, item);
+    if (image.empty) {
+        return <View style={[styles.item, styles.itemInvisible]} />;
+    }
 
-        return (
-            <TouchableOpacity style={[styles.item, {
-                opacity: item.disabled ? 0.3 : 1,
-            }]} onPress={() => {
-                if (item.disabled) {
-                    // show small toast
-                    Alert.alert('Oops!', 'File too large - please select a video less than 30 seconds & under 100MB');
-                    return;
-                }
+    const isSelected = selectedPhotos.some(photo => photo.uri === image.uri);
+    const indexInSelectedPhotos = getSelectMediaIndex(selectedPhotos, image);
 
-                onSelectImage(item);
-            }}>
-                <Image
-                    key={index}
-                    source={{ uri: item.uri }}
-                    style={[styles.image, isSelected && styles.selectedImageTile]}
-                />
+    return (
+        <TouchableOpacity style={[styles.item, { opacity: image.disabled ? 0.2 : 1 }]} onPress={() => {
+            if (image.disabled) {
+                Alert.alert('Oops!', 'File too large - please select a video less than 30 seconds & under 100MB');
+                return;
+            }
+            onSelectImage(image);
+        }}>
+            <Image
+                source={{ uri: image.thumbnail, width: 60, height: 60, cache: 'force-cache' }}
+                style={[styles.image, isSelected && styles.selectedImageTile]}
+            />
 
-                {/* if not selected */}
-                {isMultiSelect && !isSelected && (
-                    <MaterialCommunityIcons
-                        name="checkbox-blank-circle-outline"
-                        size={25}
-                        color="white"
-                        style={{
-                            position: 'absolute',
-                            top: 5,
-                            right: 5,
-                        }}
-                    />
-                )}
-
-                {isMultiSelect && isSelected && (
-                    // number
+            {/* Multi-select icon logic */}
+            {isMultiSelect && (
+                isSelected ? (
                     <View style={{
                         position: 'absolute',
                         top: 5,
@@ -95,26 +81,64 @@ const PhotoGrid = ({ photos, loadMorePhotos, onSelectImage, selectedPhotos, isMu
                     }}>
                         <Text style={{ color: 'white' }}>{indexInSelectedPhotos + 1}</Text>
                     </View>
-                )}
-            </TouchableOpacity>
+                ) : (
+                    <MaterialCommunityIcons
+                        name="checkbox-blank-circle-outline"
+                        size={25}
+                        color="white"
+                        style={{
+                            position: 'absolute',
+                            top: 5,
+                            right: 5,
+                        }}
+                    />
+                )
+            )}
+        </TouchableOpacity>
+    );
+}, (prevProps, nextProps) => (
+    prevProps.image.uri === nextProps.image.uri &&
+    prevProps.isMultiSelect === nextProps.isMultiSelect &&
+    prevProps.onSelectImage === nextProps.onSelectImage
+));
+
+const PhotoGrid = memo(({ photos, loadMorePhotos, onSelectImage, isMultiSelect, Loader }) => {
+    if (photos.length === 0) {
+        return (
+            <View style={{ textAlign: 'center', marginTop: 20, color: 'white', flex: 1, alignItems: 'center' }}>
+                <ActivityIndicator size="small" color="white" style={{ marginTop: 20 }} />
+            </View>
         );
-    }, [selectedPhotos]);
+    }
 
     return (
         <FlatList
+            disableVirtualization
             data={formatData(photos, numColumns)}
             style={styles.container}
-            renderItem={memoizedRenderItem}
+            renderItem={({ item, index }) => {
+                return (
+                    <ImageTile
+                        image={item}
+                        onSelectImage={onSelectImage}
+                        isMultiSelect={isMultiSelect}
+                    />
+                )
+            }}
+            removeClippedSubviews={true}
             numColumns={numColumns}
-            keyExtractor={(_, index) => index.toString()}
+            keyExtractor={(item, index) => item.id}
             onEndReached={loadMorePhotos}
-            onEndReachedThreshold={0.5}
-            initialNumToRender={10}  // Render a limited number of items initially
-            windowSize={10}          // How many items should be kept in memory
-            maxToRenderPerBatch={5}  // Limits rendering batches to improve performance
+            onEndReachedThreshold={.5}
+            ListFooterComponent={Loader}
+            windowSize={5}
+            initialNumToRender={12}  // Render a limited number of items initially
+            getItemLayout={(data, index) => (
+                { length: IMAGE_SIZE, offset: IMAGE_SIZE * index, index }
+            )}
         />
     );
-};
+});
 
 export async function checkAndRequestMediaLibraryPermissions() {
     try {
@@ -129,20 +153,16 @@ export async function checkAndRequestMediaLibraryPermissions() {
         // iOS will also use MediaLibrary.requestPermissionsAsync()
         else if (Platform.OS === "ios") {
             const permissions = await requestIOSMediaPermissions();
-
-            // console.log('permissions', permissions);
-
-            // if (permissions.some(permission => permission !== 'granted')) {
-            //     console.log('Media Library permission not granted on iOS');
-            //     return false; // Exit the function if permission is not granted
-            // }
-
             return true; // Permission granted
         }
 
         return true; // Permission granted
     } catch (err) {
         console.log('Error requesting Media Library permissions:', err, Platform.OS);
+        showSettingsAlert({
+            title: 'Storage Permission',
+            message: 'Storage access is required to select photos. Please enable it in the settings.',
+        });
         return false;
     }
 }
@@ -151,18 +171,17 @@ const ImageSelector = ({ navigation, onClose }) => {
     const { selectedPhotos, setSelectedPhotos, setStep } = usePostProvider();
     const [photos, setPhotos] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [page, setPage] = useState(1);
     const [hasNextPage, setHasNextPage] = useState(true);
     const [isMultiSelect, setIsMultiSelect] = useState(false);
     const [mediaFilter, setmediaFilter] = useState(null);
     const [showAlbums, setShowAlbums] = useState(false);
+    const [hasPermission, setHasPermission] = useState(false);
 
     useEffect(() => {
         if (mediaFilter) {
-            setSelectedPhotos([]);
-            setPage(1);
             setPhotos([]);
-            getPhotos(1);
+            setSelectedPhotos([]);
+            getPhotos(undefined);
             setHasNextPage(true);
             setIsMultiSelect(false);
             setLoading(false);
@@ -178,11 +197,16 @@ const ImageSelector = ({ navigation, onClose }) => {
         }
     }, [selectedPhotos, photos]);
 
-    const getPhotos = useCallback(async (page) => {
+    const getPhotos = async (lastAssetId) => {
         try {
-            const hasPermission = await checkAndRequestMediaLibraryPermissions();
             if (!hasPermission) {
-                return;
+                const permissions = await checkAndRequestMediaLibraryPermissions();
+
+                if (!permissions) {
+                    return;
+                }
+
+                setHasPermission(true);
             }
 
             let mediaType = ['video', 'photo'];
@@ -200,17 +224,12 @@ const ImageSelector = ({ navigation, onClose }) => {
             setLoading(true);
 
             const gallery = await MediaLibrary.getAssetsAsync({
-                first: 20 * page, // Pagination: 20 items per page
+                first: 20, // Pagination: 20 items per page
                 mediaType: mediaType,
                 sortBy: ['creationTime'],
                 album: albumId,  // If an album is selected, fetch from that album
+                after: lastAssetId || undefined, // Pagination: Fetch assets after the last fetched asset
             });
-
-            // const gallery = await MediaLibrary.getAssetsAsync({
-            //     first: 20 * page,
-            //     mediaType: ['photo', 'video'],
-            //     sortBy: ['creationTime'],
-            // });
 
             const { assets, hasNextPage } = gallery;
 
@@ -220,16 +239,16 @@ const ImageSelector = ({ navigation, onClose }) => {
 
             const images = await Promise.all(
                 assets.map(async (asset) => {
-                    // Check if the file exists before accessing it
-                    const fileExists = await FileSystem.getInfoAsync(asset.uri);
-                    if (!fileExists.exists) {
-                        console.log(`File does not exist: ${asset.uri}`);
-                        return null;
-                    }
+                    const { localUri, } = await MediaLibrary.getAssetInfoAsync(asset.id);
+                    const { size } = await stat(localUri);
 
-                    const { localUri } = await MediaLibrary.getAssetInfoAsync(asset.id);
-
-                    let { size } = await FileSystem.getInfoAsync(localUri, { size: true });
+                    const { thumbnailBase64 } = await CameraRoll.getPhotoThumbnail(asset.id, {
+                        quality: 0.5,
+                        targetSize: {
+                            height: 20,
+                            width: 20,
+                        },
+                    })
 
                     const mimeType = asset.filename.split('.').pop();
                     const type = asset.mediaType === 'photo' ? 'image' : 'video';
@@ -240,6 +259,7 @@ const ImageSelector = ({ navigation, onClose }) => {
 
                     return {
                         uri: asset.uri,
+                        thumbnail: `data:image/${mimeType};base64,${thumbnailBase64}`,
                         localUri,
                         fileName: asset.filename,
                         fileSize: size,
@@ -253,40 +273,33 @@ const ImageSelector = ({ navigation, onClose }) => {
                 })
             );
 
-            const filteredImages = images.filter((image) => image !== null);
+            // const filteredImages = images.filter((image) => image !== null);
 
-            setPhotos(filteredImages);
+            // Append the new assets to the existing list
+            setPhotos((prevPhotos) => [...prevPhotos, ...images]);
 
-            if (selectedPhotos.length === 0 && filteredImages.length > 0) {
+            if (selectedPhotos.length === 0 && images.length > 0) {
                 // get the first NON disabled photo
-                const nonDisabledPhoto = filteredImages.find(photo => !photo.disabled);
+                const nonDisabledPhoto = images.find(photo => !photo.disabled);
                 if (nonDisabledPhoto) {
                     setSelectedPhotos([nonDisabledPhoto]);
                 }
             }
-            setLoading(false);
 
+            setLoading(false);
         } catch (error) {
             console.log('Error getting photos', error);
-            showSettingsAlert({
-                title: 'Storage Permission',
-                message: 'Storage access is required to select photos. Please enable it in the settings.',
-            });
+            Alert.alert('Oops!', 'Error getting photos');
             setLoading(false);
         }
-    }, [selectedPhotos, page, mediaFilter]);
+    };
 
-    const loadMorePhotos = useCallback(() => {
+    const loadMorePhotos = () => {
         if (hasNextPage && !loading) {
             setLoading(true);
-            setPage(prevPage => {
-                const newPage = prevPage + 1;
-                getPhotos(newPage);
-                setLoading(false);
-                return newPage;
-            });
+            getPhotos(photos[photos.length - 1].id);
         }
-    }, [loading, hasNextPage, mediaFilter]);
+    };
 
     const onSelectImage = (image) => {
         if (isMultiSelect) {
@@ -314,13 +327,22 @@ const ImageSelector = ({ navigation, onClose }) => {
     };
 
     useEffect(() => {
-        getPhotos(page);
+        getPhotos();
     }, []);
 
     const renderSelectedPhotos = () => {
         if (selectedPhotos.length === 0) {
             return (
-                <Text>No photos selected</Text>
+                <Text
+                    style={{
+                        color: 'white',
+                        textAlign: 'center',
+                        fontSize: 12,
+                        fontFamily: 'Poppins_500Medium',
+                    }}
+                >
+                    No photos selected
+                </Text>
             );
         }
 
@@ -331,7 +353,7 @@ const ImageSelector = ({ navigation, onClose }) => {
 
         return (
             <FastImage
-                key={lastAddedPhoto.uri}
+                key={lastAddedPhoto.id}
                 source={{
                     uri: lastAddedPhoto.localUri,
                     priority: FastImage.priority.normal,
@@ -372,6 +394,14 @@ const ImageSelector = ({ navigation, onClose }) => {
         });
     };
 
+    const Loader = useMemo(() => {
+        return (
+            (hasNextPage && photos.length > 0) && (
+                <ActivityIndicator size="small" color="white" style={{ marginTop: 20 }} />
+            )
+        );
+    }, [hasNextPage, photos]);
+
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: 'black' }}>
             <View style={styles.header}>
@@ -380,12 +410,18 @@ const ImageSelector = ({ navigation, onClose }) => {
                     alignItems: 'center',
                     width: '50%',
                 }}>
-                    <TouchableOpacity onPress={onClose}>
+                    <TouchableOpacity onPress={onClose}
+                        style={{
+                            display: 'flex',
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                        }}
+                    >
                         <Ionicons name="close" size={16} color="white" />
+                        <Text style={[styles.headerText, styles.poppinsFont]}>
+                            {` `} New Post
+                        </Text>
                     </TouchableOpacity>
-                    <Text style={[styles.headerText, styles.poppinsFont]}>
-                        {` `} New Post
-                    </Text>
                 </View>
                 <TouchableOpacity onPress={() => {
                     setStep(1);
@@ -396,20 +432,13 @@ const ImageSelector = ({ navigation, onClose }) => {
             </View>
 
             <View style={styles.topHalf}>
-                {selectedPhotos.length === 0 && photos.length === 0 ?
-                    (
-                        <Text>No photos available</Text>
-                    ) : (
-                        renderSelectedPhotos()
-                    )}
+                {renderSelectedPhotos()}
             </View>
-
 
             <View style={styles.bottomHalf}>
                 <View style={styles.buttonContainer}>
                     <TouchableOpacity onPress={openImagePicker} style={{
                         padding: 10,
-                        // marginLeft: 10,
                         display: 'flex',
                         flexDirection: 'row',
                         alignItems: 'center',
@@ -449,18 +478,12 @@ const ImageSelector = ({ navigation, onClose }) => {
                     </View>
                 </View>
 
-                {(loading && photos.length === 0) && (
-                    <Text style={{ textAlign: 'center', marginTop: 20, color: 'white' }}>
-                        Loading...
-                    </Text>
-                )}
-
                 <PhotoGrid
                     photos={photos}
                     loadMorePhotos={loadMorePhotos}
                     onSelectImage={onSelectImage}
-                    selectedPhotos={selectedPhotos}
                     isMultiSelect={isMultiSelect}
+                    Loader={Loader}
                 />
             </View>
 

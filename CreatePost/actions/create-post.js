@@ -455,8 +455,10 @@ export const addPost = async ({
         formData.append("media", JSON.stringify(media));
 
         if (association_id && association_type) {
-            formData.append("association_id", association_id);
-            formData.append("association_type", association_type);
+            if (association_type !== 'garage') {
+                formData.append("association_id", association_id);
+                formData.append("association_type", association_type);
+            }
         }
 
         const response = await fetch(`${API_URL}/wp-json/app/v1/create-post`, {
@@ -575,6 +577,31 @@ export const fetchUserGarage = async (user_id) => {
         const data = await response.json();
         if (!response.ok || response.status !== 200) {
             throw new Error(data.message);
+        }
+
+        return data;
+    } catch (e) {
+        return [];
+    }
+};
+
+export const fetchGarageById = async (garage_id) => {
+    try {
+        const response = await fetch(`${API_URL}/wp-json/app/v1/get-garage`, {
+            cache: "no-cache",
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ garage_id }),
+        });
+
+        const data = await response.json();
+        if (!response.ok || response.status !== 200) {
+            return {
+                error: data.message,
+                success: false,
+            };
         }
 
         return data;

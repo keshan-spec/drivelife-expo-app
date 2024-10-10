@@ -11,7 +11,6 @@ import { Platform } from "react-native";
 import { usePostProvider } from './ContextProvider';
 
 import CustomVideo from './Components/Video';
-import { stat } from 'react-native-fs';
 import { checkCameraPermission, checkStoragePermission, showSettingsAlert } from '../permissions/camera';
 
 import * as FileSystem from 'expo-file-system';
@@ -130,7 +129,7 @@ const ImageSelector = ({ navigation, onClose }) => {
                     }
 
                     const { localUri } = await MediaLibrary.getAssetInfoAsync(asset.id);
-                    const { size } = await stat(localUri);
+                    let { size } = await FileSystem.getInfoAsync(localUri, { size: true });
 
                     // let thumbImg = false;
                     //     const { thumbnailBase64 } = await CameraRoll.getPhotoThumbnail(asset.id, {
@@ -150,7 +149,6 @@ const ImageSelector = ({ navigation, onClose }) => {
 
                     const mimeType = asset.filename.split('.').pop();
                     const type = asset.mediaType === 'photo' ? 'image' : 'video';
-                    console.log('asset', asset.uri, localUri);
 
                     // max 100mb
                     const exceedsSize = size > MAX_FILE_SIZE;

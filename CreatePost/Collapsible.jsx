@@ -14,7 +14,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import BottomSheet from './SlideIn';
 import { usePostProvider } from './ContextProvider';
 
-const TaggedEntity = ({ label, type, onRemove }) => {
+const TaggedEntity = ({ label, type, onRemove, canRemove = true }) => {
     return (
         <View style={{
             flexDirection: 'row',
@@ -27,9 +27,11 @@ const TaggedEntity = ({ label, type, onRemove }) => {
             <Text style={[styles.textSmall, {
                 color: '#fff',
             }]}>{label}</Text>
-            <TouchableOpacity onPress={onRemove}>
-                <MaterialCommunityIcons name="close" size={16} color="#fff" />
-            </TouchableOpacity>
+            {canRemove && (
+                <TouchableOpacity onPress={onRemove}>
+                    <MaterialCommunityIcons name="close" size={16} color="#fff" />
+                </TouchableOpacity>
+            )}
         </View>
     );
 };
@@ -78,7 +80,18 @@ function Collapsible() {
                         type={entity.type}
                         onRemove={() => {
                             onTagRemove(entity.arr_idx);
-                            // setTaggedEntities(taggedEntities.filter((_, i) => i !== index));
+                        }}
+                    />
+                ))}
+
+                {taggedEntities.filter((entity) => entity.type === 'associated-car').map((entity, index) => (
+                    <TaggedEntity
+                        key={index}
+                        label={entity.label}
+                        type={entity.type}
+                        canRemove={false}
+                        onRemove={() => {
+                            onTagRemove(entity.arr_idx);
                         }}
                     />
                 ))}

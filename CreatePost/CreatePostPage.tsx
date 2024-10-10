@@ -6,27 +6,40 @@ import { PostProvider } from './ContextProvider';
 import ImageSelector from './ImageSelector';
 import SharePost from './ShareTagPanel';
 import { Dimensions, StyleSheet } from 'react-native';
+import React from 'react';
 
 // get poppin font
 import { useFonts } from 'expo-font';
 
 import { Poppins_500Medium, Poppins_700Bold, Poppins_600SemiBold } from "@expo-google-fonts/poppins";
 import SharePostStep1 from './SharePanel';
+import { CreatePostProps } from '../types';
 
 const numColumns = 3;
 const screenWidth = Dimensions.get('window').width;
 
 const Stack = createStackNavigator();
 
+interface CreatePostPanelProps {
+    onComplete: (props: CreatePostProps) => Promise<void>;
+    onClose: () => void;
+    userId: string;
+    association: {
+        associationId: string | null;
+        associationType: string | null;
+    };
+}
+
 const CreatePost = ({
     onComplete,
     onClose,
     userId,
-}) => {
+    association
+}: CreatePostPanelProps) => {
     const [fontsLoaded] = useFonts({
         Poppins_500Medium,
         Poppins_700Bold,
-        Poppins_600SemiBold,
+        Poppins_600SemiBold
     });
 
     if (!fontsLoaded) {
@@ -34,7 +47,7 @@ const CreatePost = ({
     }
 
     return (
-        <PostProvider userId={userId}>
+        <PostProvider userId={userId} association={association}>
             <NavigationContainer>
                 <Stack.Navigator initialRouteName="ImageSelection">
                     <Stack.Screen
@@ -139,6 +152,5 @@ const styles = StyleSheet.create({
         backgroundColor: '#0a0a0a',
     },
 });
-
 
 export default CreatePost;

@@ -396,11 +396,15 @@ export default function App() {
         <ProgressNotification media_uri={postMedia} />
       )}
 
-      {view === 'createPost' && (
+      {(view === 'createPost' && carcalSession !== null) && (
         <CreatePost
           onClose={() => setView('webview')}
           onComplete={onPostCreateBtnPress}
           userId={carcalSession}
+          association={{
+            associationId: messageData?.association_id || null,
+            associationType: messageData?.association_type || null,
+          }}
         />
       )}
 

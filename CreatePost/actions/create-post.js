@@ -9,7 +9,7 @@ import RNVideoHelper from 'react-native-video-helper';
 import { Buffer } from "buffer";
 import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
-import compressVideo from './compress-video';
+// import compressVideo from './compress-video';
 
 const API_URL = Constants.expoConfig.extra.headlessAPIUrl;
 const BUCKET_NAME = Constants.expoConfig.extra.awsBucketName;
@@ -124,46 +124,46 @@ const compressMedia = async (media, type) => {
                 // if video is less than 20MB, don't compress
                 const videoSize = await RNFS.stat(encodedUri);
 
-                if (videoSize.size < MIN_COMPRESSION_SIZE) {
-                    const {
-                        height,
-                        width,
-                        extension
-                    } = await getVideoMetaData(encodedUri);
-
-                    return {
-                        uri: encodedUri,
-                        height,
-                        width,
-                        fileSize: videoSize.size,
-                        filename: `${fileName}.${extension}`,
-                    };
-                }
-
-                // const compressedVideo = await Video.compress(encodedUri, {
-                //     quality: 1,
-                //     compressionMethod: 'manual',
-                //     bitrate: 10 * 1000 * 1000,
-                // });
-                const compressedVideo = await compressVideo(encodedUri, media.duration, `${fileName}.${fileExtension}`);
-                if (!compressedVideo) {
-                    throw new Error('Failed to compress video');
-                }
-
+                // if (videoSize.size < MIN_COMPRESSION_SIZE) {
                 const {
-                    size,
                     height,
                     width,
                     extension
-                } = await getVideoMetaData(compressedVideo);
+                } = await getVideoMetaData(encodedUri);
 
                 return {
-                    uri: `file://${compressedVideo}`,
+                    uri: encodedUri,
                     height,
                     width,
-                    fileSize: size,
-                    filename: `${fileName}.${extension}`
+                    fileSize: videoSize.size,
+                    filename: `${fileName}.${extension}`,
                 };
+            // }
+
+            // const compressedVideo = await Video.compress(encodedUri, {
+            //     quality: 1,
+            //     compressionMethod: 'manual',
+            //     bitrate: 10 * 1000 * 1000,
+            // });
+            // const compressedVideo = await compressVideo(encodedUri, media.duration, `${fileName}.${fileExtension}`);
+            // if (!compressedVideo) {
+            //     throw new Error('Failed to compress video');
+            // }
+
+            // const {
+            //     size,
+            //     height,
+            //     width,
+            //     extension
+            // } = await getVideoMetaData(compressedVideo);
+
+            // return {
+            //     uri: `file://${compressedVideo}`,
+            //     height,
+            //     width,
+            //     fileSize: size,
+            //     filename: `${fileName}.${extension}`
+            // };
             default:
                 return null;
         }

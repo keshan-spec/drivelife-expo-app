@@ -5,7 +5,7 @@ import 'dotenv/config';
 module.exports = ({ config }) => {
     return {
         ...config,
-        plugins: [...config.plugins, [withFFmpegKitGradle], [withForegroundService]],
+        plugins: [...config.plugins, /*[withFFmpegKitGradle],*/[withForegroundService]],
         extra: {
             ...config.extra,
             awsRegion: process.env.AWS_REGION || 'eu-west-2',

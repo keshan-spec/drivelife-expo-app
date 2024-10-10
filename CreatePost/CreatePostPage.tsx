@@ -1,4 +1,5 @@
 // App.js
+import React from 'react';
 import 'react-native-gesture-handler';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -12,17 +13,29 @@ import { useFonts } from 'expo-font';
 
 import { Poppins_500Medium, Poppins_700Bold, Poppins_600SemiBold } from "@expo-google-fonts/poppins";
 import SharePostTagPanel from './SharePanelTags';
+import { CreatePostProps } from '../types';
 
 const numColumns = 3;
 const screenWidth = Dimensions.get('window').width;
 
 const Stack = createStackNavigator();
 
+interface CreatePostPanelProps {
+    onComplete: (props: CreatePostProps) => Promise<void>;
+    onClose: () => void;
+    userId: string;
+    association: {
+        associationId: string | null;
+        associationType: string | null;
+    };
+}
+
 const CreatePost = ({
     onComplete,
     onClose,
     userId,
-}) => {
+    association
+}: CreatePostPanelProps) => {
     const [fontsLoaded] = useFonts({
         Poppins_500Medium,
         Poppins_700Bold,
@@ -34,7 +47,7 @@ const CreatePost = ({
     }
 
     return (
-        <PostProvider userId={userId}>
+        <PostProvider userId={userId} association={association}>
             <NavigationContainer>
                 <Stack.Navigator initialRouteName="ImageSelection">
                     <Stack.Screen

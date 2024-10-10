@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, FlatList, StyleSheet, Dimensions, SafeAreaView, TouchableOpacity, Text } from 'react-native';
+import React, { useState, useEffect, useCallback, memo, useMemo } from 'react';
+import { View, FlatList, StyleSheet, Dimensions, SafeAreaView, TouchableOpacity, Text, ActivityIndicator } from 'react-native';
 import * as MediaLibrary from 'expo-media-library';
 import { launchCamera } from 'react-native-image-picker';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
@@ -20,72 +20,60 @@ const numColumns = 4;
 const screenWidth = Dimensions.get('window').width;
 const MAX_FILE_SIZE = 100 * 1024 * 1024;
 
-const formatData = (photos, numColumns) => {
-    const numberOfFullRows = Math.floor(photos.length / numColumns);
+const IMAGE_SIZE = 50;
 
-    let numberOfElementsLastRow = photos.length - (numberOfFullRows * numColumns);
+const formatData = (photos, numColumns) => {
+    const formattedPhotos = [...photos];  // Create a shallow copy of the array
+    const numberOfFullRows = Math.floor(formattedPhotos.length / numColumns);
+
+    let numberOfElementsLastRow = formattedPhotos.length - (numberOfFullRows * numColumns);
     while (numberOfElementsLastRow !== numColumns && numberOfElementsLastRow !== 0) {
-        photos.push({ key: `blank-${numberOfElementsLastRow}`, empty: true });
+        formattedPhotos.push({ key: `blank-${numberOfElementsLastRow}`, empty: true });
         numberOfElementsLastRow++;
     }
 
-    return photos;
+    return formattedPhotos;
 };
 
 const getSelectMediaIndex = (selectedPhotos, image) => {
     return selectedPhotos.findIndex(photo => photo.uri === image.uri);
 };
 
-const PhotoGrid = ({ photos, loadMorePhotos, onSelectImage, selectedPhotos, isMultiSelect }) => {
-    const memoizedRenderItem = useCallback(({ item, index }) => {
-        if (item.empty) {
-            return <View style={[styles.item, styles.itemInvisible]} />;
-        }
+const ImageTile = memo(({ image, onSelectImage, isMultiSelect }) => {
+    const { selectedPhotos } = usePostProvider();  // Make sure this hook doesn't cause extra re-renders
 
-        const isSelected = selectedPhotos.some(photo => photo.uri === item.uri);
-        const indexInSelectedPhotos = getSelectMediaIndex(selectedPhotos, item);
+    if (image.empty) {
+        return <View style={[styles.item, styles.itemInvisible]} />;
+    }
 
-        return (
-            <TouchableOpacity style={[styles.item, {
-                opacity: item.disabled ? 0.3 : 1,
-            }]} onPress={() => {
-                if (item.disabled) {
-                    // show small toast
-                    ToastAndroid.showWithGravity(
-                        'File too large - please select a video less than 30 seconds & under 100MB',
-                        ToastAndroid.SHORT,
-                        ToastAndroid.CENTER // You can use ToastAndroid.TOP, ToastAndroid.BOTTOM, etc.
-                    );
-                    return;
-                }
+    const isSelected = selectedPhotos.some(photo => photo.uri === image.uri);
+    const indexInSelectedPhotos = getSelectMediaIndex(selectedPhotos, image);
 
-                onSelectImage(item);
-            }}>
-                <FastImage
-                    style={[styles.image, isSelected && styles.selectedImageTile]}
-                    source={{
-                        uri: item.uri,
-                        priority: FastImage.priority.normal,
-                    }}
-                    resizeMode={FastImage.resizeMode.cover}
-                />
+    return (
+        <TouchableOpacity style={[styles.item, { opacity: image.disabled ? 0.2 : 1 }]} onPress={() => {
+            if (image.disabled) {
+                // show small toast
+                ToastAndroid.showWithGravity(
+                    'File too large - please select a video less than 30 seconds & under 100MB',
+                    ToastAndroid.SHORT,
+                    ToastAndroid.CENTER // You can use ToastAndroid.TOP, ToastAndroid.BOTTOM, etc.
+                );
+                return;
+            }
+            onSelectImage(image);
+        }}>
+            <FastImage
+                style={[styles.image, isSelected && styles.selectedImageTile]}
+                source={{
+                    uri: image.uri,
+                    priority: FastImage.priority.normal,
+                }}
+                resizeMode={FastImage.resizeMode.cover}
+            />
 
-                {/* if not selected */}
-                {isMultiSelect && !isSelected && (
-                    <MaterialCommunityIcons
-                        name="checkbox-blank-circle-outline"
-                        size={25}
-                        color="white"
-                        style={{
-                            position: 'absolute',
-                            top: 5,
-                            right: 5,
-                        }}
-                    />
-                )}
-
-                {isMultiSelect && isSelected && (
-                    // number
+            {/* Multi-select icon logic */}
+            {isMultiSelect && (
+                isSelected ? (
                     <View style={{
                         position: 'absolute',
                         top: 5,
@@ -99,46 +87,83 @@ const PhotoGrid = ({ photos, loadMorePhotos, onSelectImage, selectedPhotos, isMu
                     }}>
                         <Text style={{ color: 'white' }}>{indexInSelectedPhotos + 1}</Text>
                     </View>
-                )}
-            </TouchableOpacity>
+                ) : (
+                    <MaterialCommunityIcons
+                        name="checkbox-blank-circle-outline"
+                        size={25}
+                        color="white"
+                        style={{
+                            position: 'absolute',
+                            top: 5,
+                            right: 5,
+                        }}
+                    />
+                )
+            )}
+        </TouchableOpacity>
+    );
+}, (prevProps, nextProps) => (
+    prevProps.image.uri === nextProps.image.uri &&
+    prevProps.isMultiSelect === nextProps.isMultiSelect &&
+    prevProps.onSelectImage === nextProps.onSelectImage
+));
+
+const PhotoGrid = memo(({ photos, loadMorePhotos, onSelectImage, isMultiSelect, Loader }) => {
+    if (photos.length === 0) {
+        return (
+            <View style={{ textAlign: 'center', paddingTop: 20, color: 'white', flex: 1, alignItems: 'center', backgroundColor: '#000' }}>
+                <ActivityIndicator size="small" color="white" style={{ marginTop: 20 }} />
+            </View>
         );
-    }, [selectedPhotos]);
+    }
 
     return (
         <FlatList
+            disableVirtualization
             data={formatData(photos, numColumns)}
             style={styles.container}
-            renderItem={memoizedRenderItem}
+            renderItem={({ item, index }) => {
+                return (
+                    <ImageTile
+                        image={item}
+                        onSelectImage={onSelectImage}
+                        isMultiSelect={isMultiSelect}
+                    />
+                );
+            }}
+            removeClippedSubviews={true}
             numColumns={numColumns}
-            keyExtractor={(_, index) => index.toString()}
+            keyExtractor={(item, index) => item.id}
             onEndReached={loadMorePhotos}
-            onEndReachedThreshold={0.5}
-            initialNumToRender={10}  // Render a limited number of items initially
-            windowSize={10}          // How many items should be kept in memory
-            maxToRenderPerBatch={5}  // Limits rendering batches to improve performance
+            onEndReachedThreshold={.5}
+            ListFooterComponent={Loader}
+            windowSize={5}
+            initialNumToRender={12}  // Render a limited number of items initially
+            getItemLayout={(data, index) => (
+                { length: IMAGE_SIZE, offset: IMAGE_SIZE * index, index }
+            )}
         />
     );
-};
+});
 
 const ImageSelector = ({ navigation, onClose }) => {
     const { selectedPhotos, setSelectedPhotos, setStep } = usePostProvider();
     const [photos, setPhotos] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [page, setPage] = useState(1);
     const [hasNextPage, setHasNextPage] = useState(true);
     const [isMultiSelect, setIsMultiSelect] = useState(false);
     const [mediaFilter, setmediaFilter] = useState(null);
     const [showAlbums, setShowAlbums] = useState(false);
+    const [lastAssetId, setLastAssetId] = useState(null);
 
     useEffect(() => {
         if (mediaFilter) {
             setSelectedPhotos([]);
-            setPage(1);
             setPhotos([]);
-            getPhotos(1);
             setHasNextPage(true);
             setIsMultiSelect(false);
             setLoading(false);
+            getPhotos(true);
         }
     }, [mediaFilter]);
 
@@ -152,42 +177,10 @@ const ImageSelector = ({ navigation, onClose }) => {
     }, [selectedPhotos, photos]);
 
     useEffect(() => {
-        getPhotos(page);
+        getPhotos(true);
     }, []);
 
-    const onSelectImage = (image) => {
-        if (isMultiSelect) {
-
-            // max 5 photos
-            if (selectedPhotos.length >= 5) {
-                // if already selected, remove it
-                if (selectedPhotos.some(photo => photo.uri === image.uri)) {
-                    setSelectedPhotos(prevSelectedPhotos => prevSelectedPhotos.filter(photo => photo.uri !== image.uri));
-                } else {
-                    ToastAndroid.showWithGravity(
-                        'Maximum 5 photos allowed',
-                        ToastAndroid.SHORT,
-                        ToastAndroid.CENTER // You can use ToastAndroid.TOP, ToastAndroid.BOTTOM, etc.
-                    );
-                }
-                return;
-            }
-
-            setSelectedPhotos((prevSelectedPhotos) => {
-
-
-                if (prevSelectedPhotos.some(photo => photo.uri === image.uri)) {
-                    return prevSelectedPhotos.filter(photo => photo.uri !== image.uri);
-                } else {
-                    return [...prevSelectedPhotos, image];
-                }
-            });
-        } else {
-            setSelectedPhotos([image]);
-        }
-    };
-
-    const getPhotos = async (page) => {
+    const getPhotos = async (reset) => {
         try {
             if (Platform.OS === "android" && !(await MediaLibrary.requestPermissionsAsync())) {
                 return;
@@ -206,14 +199,17 @@ const ImageSelector = ({ navigation, onClose }) => {
             }
 
             setLoading(true);
+
             const gallery = await MediaLibrary.getAssetsAsync({
-                first: 20 * page, // Pagination: 20 items per page
+                first: 20, // Pagination: 20 items per page
                 mediaType: mediaType,
                 sortBy: ['creationTime'],
                 album: albumId,  // If an album is selected, fetch from that album
+                after: (lastAssetId && !reset) ? lastAssetId : undefined, // Pagination: Fetch assets after the last fetched asset
             });
 
-            const { assets, hasNextPage } = gallery;
+            const { assets, hasNextPage, endCursor } = gallery;
+            setLastAssetId(endCursor);
 
             if (!hasNextPage) {
                 setHasNextPage(false);
@@ -244,17 +240,17 @@ const ImageSelector = ({ navigation, onClose }) => {
 
             const media = await Promise.all(images);
 
-            setPhotos(media);
+            setPhotos((prevPhotos) => [...prevPhotos, ...media]);
 
-            if (selectedPhotos.length === 0 && media.length > 0) {
+            if (selectedPhotos.length === 0 && images.length > 0) {
                 // get the first NON disabled photo
-                const nonDisabledPhoto = media.find(photo => !photo.disabled);
+                const nonDisabledPhoto = images.find(photo => !photo.disabled);
                 if (nonDisabledPhoto) {
                     setSelectedPhotos([nonDisabledPhoto]);
                 }
             }
-            setLoading(false);
 
+            setLoading(false);
         } catch (error) {
             console.log('Error getting photos', error);
             showSettingsAlert({
@@ -298,7 +294,16 @@ const ImageSelector = ({ navigation, onClose }) => {
     const renderSelectedPhotos = () => {
         if (selectedPhotos.length === 0) {
             return (
-                <Text>No photos selected</Text>
+                <Text
+                    style={{
+                        color: 'white',
+                        textAlign: 'center',
+                        fontSize: 12,
+                        fontFamily: 'Poppins_500Medium',
+                    }}
+                >
+                    No photos selected
+                </Text>
             );
         }
 
@@ -320,17 +325,51 @@ const ImageSelector = ({ navigation, onClose }) => {
         );
     };
 
-    const loadMorePhotos = useCallback(() => {
+    const onSelectImage = (image) => {
+        if (isMultiSelect) {
+            // max 5 photos
+            if (selectedPhotos.length >= 5) {
+                // if already selected, remove it
+                if (selectedPhotos.some(photo => photo.uri === image.uri)) {
+                    setSelectedPhotos(prevSelectedPhotos => prevSelectedPhotos.filter(photo => photo.uri !== image.uri));
+                } else {
+                    ToastAndroid.showWithGravity(
+                        'Maximum 5 photos allowed',
+                        ToastAndroid.SHORT,
+                        ToastAndroid.CENTER // You can use ToastAndroid.TOP, ToastAndroid.BOTTOM, etc.
+                    );
+                }
+                return;
+            }
+
+            setSelectedPhotos((prevSelectedPhotos) => {
+
+
+                if (prevSelectedPhotos.some(photo => photo.uri === image.uri)) {
+                    return prevSelectedPhotos.filter(photo => photo.uri !== image.uri);
+                } else {
+                    return [...prevSelectedPhotos, image];
+                }
+            });
+        } else {
+            setSelectedPhotos([image]);
+        }
+    };
+
+    const loadMorePhotos = () => {
         if (hasNextPage && !loading) {
             setLoading(true);
-            setPage(prevPage => {
-                const newPage = prevPage + 1;
-                getPhotos(newPage);
-                setLoading(false);
-                return newPage;
-            });
+            getPhotos(false);
         }
-    }, [loading, hasNextPage, mediaFilter]);
+    };
+
+    const Loader = useMemo(() => {
+        return (
+            (hasNextPage && photos.length > 0) && (
+                <ActivityIndicator size="small" color="white" style={{ marginTop: 40, marginBottom: 20 }} />
+            )
+        );
+    }, [hasNextPage, photos]);
 
     return (
         <SafeAreaView style={{ flex: 1 }}>
@@ -351,12 +390,18 @@ const ImageSelector = ({ navigation, onClose }) => {
                     alignItems: 'center',
                     width: '50%',
                 }}>
-                    <TouchableOpacity onPress={onClose}>
+                    <TouchableOpacity onPress={onClose}
+                        style={{
+                            display: 'flex',
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                        }}
+                    >
                         <Ionicons name="close" size={16} color="white" />
+                        <Text style={[styles.headerText, styles.poppinsFont]}>
+                            {` `} New Post
+                        </Text>
                     </TouchableOpacity>
-                    <Text style={[styles.headerText, styles.poppinsFont]}>
-                        {` `} New Post
-                    </Text>
                 </View>
                 <TouchableOpacity onPress={() => {
                     setStep(1);
@@ -367,14 +412,8 @@ const ImageSelector = ({ navigation, onClose }) => {
             </View>
 
             <View style={styles.topHalf}>
-                {selectedPhotos.length === 0 && photos.length === 0 ?
-                    (
-                        <Text>No photos available</Text>
-                    ) : (
-                        renderSelectedPhotos()
-                    )}
+                {renderSelectedPhotos()}
             </View>
-
 
             <View style={styles.bottomHalf}>
                 <View style={styles.buttonContainer}>
@@ -420,18 +459,12 @@ const ImageSelector = ({ navigation, onClose }) => {
                     </View>
                 </View>
 
-                {(loading && photos.length === 0) ? (
-                    <Text style={{ color: 'white', backgroundColor: '#000', textAlign: 'center', paddingTop: 20 }}>
-                        Loading...
-                    </Text>
-                ) : null}
-
                 <PhotoGrid
                     photos={photos}
                     loadMorePhotos={loadMorePhotos}
                     onSelectImage={onSelectImage}
-                    selectedPhotos={selectedPhotos}
                     isMultiSelect={isMultiSelect}
+                    Loader={Loader}
                 />
             </View>
         </SafeAreaView>

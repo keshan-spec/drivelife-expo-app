@@ -57,7 +57,6 @@ export default function App() {
   // This state saves whether your WebView can go back
   const [webViewcanGoBack, setWebViewcanGoBack] = useState(false);
 
-
   const { netInfo: { isConnected }, refresh } = useNetInfoInstance();
 
   const setNotifChannels = async () => {
@@ -176,14 +175,18 @@ export default function App() {
     // Add a listener for 'url' event
     Linking.addEventListener('url', handleUrl);
 
-    // Handles the AppState
+    // Handles the AppState change
     const subscription = AppState.addEventListener('change', nextAppState => {
-      if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
-        if (permissionsLocation.granted == true) {
+      // Only trigger location fetching when the app becomes active (i.e., opened)
+      if (nextAppState === 'active' && appState.current !== 'active') {
+
+        // Check if location permissions are granted
+        if (permissionsLocation.granted === true) {
           getCurrentPosition();
         }
       }
 
+      // Update the current app state
       appState.current = nextAppState;
     });
 
@@ -229,8 +232,6 @@ export default function App() {
           association_id: messageData?.association_id,
           association_type: messageData?.association_type,
           onUpload: () => {
-            console.log('Post uploaded..');
-
             webViewRef.current?.injectJavaScript(`
               if (window.onPostUpload) {
                 window.onPostUpload();
@@ -253,7 +254,7 @@ export default function App() {
         setLocation(pos.coords);
       }
     }, (error) => {
-      Alert.alert("CarCalendar", error.message, [
+      Alert.alert("DriveLife", error.message, [
         { text: "OK" },
         {
           text: "Settings",
@@ -363,8 +364,12 @@ export default function App() {
         hidden={false}
       />
 
-      {view === 'createPost' && (
+      {(view === 'createPost' && carcalSession !== null) && (
         <CreatePost
+          association={{
+            associationId: messageData?.association_id || null,
+            associationType: messageData?.association_type || null,
+          }}
           userId={carcalSession}
           onClose={() => setView('webview')}
           onComplete={onPostCreateBtnPress}

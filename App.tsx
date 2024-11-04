@@ -128,6 +128,7 @@ export default function App() {
   // OneSignal Initialization
   useEffect(() => {
     OneSignal.setAppId(Constants.expoConfig?.extra?.onesignal.app_id);
+
     OneSignal.addSubscriptionObserver((event) => {
       // if event.to is true, the user is subscribed
       if (event.to) {

@@ -47,12 +47,12 @@ const ViewAlbums = ({ visible, onClose, title, onSelect }) => {
 
     const fetchAlbumsWithThumbnails = async () => {
         try {
-            const fetchedAlbums = await CameraRoll.getAlbums({ assetType: 'All' });
+            const fetchedAlbums = await CameraRoll.getAlbums({ assetType: 'Photos' });
             const albumsWithThumbnails = await Promise.all(
                 fetchedAlbums.map(async (album) => {
                     const photos = await CameraRoll.getPhotos({
                         first: 1,
-                        assetType: 'All',
+                        assetType: 'Photos',
                         groupName: album.title,
                     });
                     const thumbnail = photos.edges.length > 0 ? photos.edges[0].node.image.uri : null;
@@ -69,7 +69,7 @@ const ViewAlbums = ({ visible, onClose, title, onSelect }) => {
         const data = {
             title: album.title,
             id: album.id,
-            mediaType: ['video', 'photo'],
+            mediaType: [/*'video',*/ 'photo'],
         };
 
         onSelect(data); // Trigger the onSelect prop when an album is selected
@@ -152,7 +152,7 @@ const ViewAlbums = ({ visible, onClose, title, onSelect }) => {
                     <View style={styles.buttonsContainer}>
                         {renderIconButton('clock-outline', 'Recent', {
                             title: 'Recent',
-                            mediaType: ['video', 'photo'],
+                            mediaType: [/*'video',*/ 'photo'],
                         })}
                         {/* {renderIconButton('star-outline', 'Favourites', {
                                 title: 'Favourites',
@@ -162,10 +162,10 @@ const ViewAlbums = ({ visible, onClose, title, onSelect }) => {
                             title: 'Photos',
                             mediaType: ['photo'],
                         })}
-                        {renderIconButton('video-outline', 'Videos', {
+                        {/* {renderIconButton('video-outline', 'Videos', {
                             title: 'Videos',
                             mediaType: ['video'],
-                        })}
+                        })} */}
                     </View>
 
                     {/* Albums Grid */}

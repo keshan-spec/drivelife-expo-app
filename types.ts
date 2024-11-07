@@ -1,5 +1,5 @@
 export interface WebMessage {
-    type: 'createPost' | 'addEventPost' | 'authData' | 'signOut';
+    type: 'createPost' | 'addEventPost' | 'authData' | 'signOut' | 'openSettings';
     user_id: string;
     page?: string;
     association_id?: string;

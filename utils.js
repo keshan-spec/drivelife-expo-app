@@ -78,6 +78,7 @@ export async function loginUserinWP(user_id) {
 export async function maybeSetUserLocation(coords, uid) {
     // send request to server to save token
     let url = `${URL}/wp-json/app/v1/update-last-location`;
+
     let data = {
         coords: {
             latitude: coords.latitude,
@@ -95,6 +96,7 @@ export async function maybeSetUserLocation(coords, uid) {
     });
 
     let json = await response.json();
+    console.log('Response from server: ', json);
     return json;
 }
 
@@ -154,6 +156,7 @@ export const setUserAsInactive = async (uid, token) => {
         },
         body: JSON.stringify(data),
     });
+
     // let json = await response.json();
     // return json;
 };

@@ -15,7 +15,6 @@ import CreatePost from "./CreatePost/CreatePostPage";
 import { addPost } from "./CreatePost/actions/create-post";
 import { CreatePostProps, WebMessage } from 'types';
 
-
 // get poppin font
 import { useFonts } from 'expo-font';
 
@@ -91,7 +90,9 @@ export default function App() {
       if (res?.["android.permission.ACCESS_FINE_LOCATION"] === "granted") {
         setPermissionsLocation({ denied: false, granted: true });
         getCurrentPosition();
-      } else setPermissionsLocation({ denied: true, granted: false });
+      } else {
+        setPermissionsLocation({ denied: true, granted: false });
+      }
 
       // Notifications
       if (res?.["android.permission.POST_NOTIFICATIONS"] === "granted") {
@@ -107,7 +108,6 @@ export default function App() {
   };
 
   useEffect(() => {
-
     // Handle user clicking on a notification and open the screen
     const handleNotificationClick = async (response: Notifications.NotificationResponse) => {
       const data = response.notification.request.content.data;
@@ -173,43 +173,40 @@ export default function App() {
       setDeepLinkUrl(url.url);
     };
 
-    // Add a listener for 'url' event
-    Linking.addEventListener('url', handleUrl);
+    // Add listener for deep links
+    const linkingSubscription = Linking.addEventListener('url', handleUrl);
 
-    // Handles the AppState change
-    const subscription = AppState.addEventListener('change', nextAppState => {
-      // Only trigger location fetching when the app becomes active (i.e., opened)
+    // Handle AppState changes
+    const appStateSubscription = AppState.addEventListener('change', (nextAppState) => {
       if (nextAppState === 'active' && appState.current !== 'active') {
-
-        // Check if location permissions are granted
-        if (permissionsLocation.granted === true) {
+        if (permissionsLocation.granted) {
           getCurrentPosition();
         }
       }
-
-      // Update the current app state
       appState.current = nextAppState;
     });
 
-    // Remove event listener on unmount
+    // Clean up listeners on unmount
     return () => {
-      Linking.removeAllListeners('url');
-      subscription.remove();
+      linkingSubscription.remove();
+      appStateSubscription.remove();
     };
-  }, []);
+  }, [permissionsLocation]);
 
   useEffect(() => {
     setExternalId();
   }, [carcalSession]);
 
+  useEffect(() => {
+    if (location && location !== null) {
+      maybeSetUserLocation(location, carcalSession);
+    }
+  }, [location]);
+
   // Set the external user id in OneSignal
   const setExternalId = useCallback(async () => {
     if (carcalSession && playerId) {
       await associateDeviceWithUser(carcalSession, playerId);
-
-      if (location && location !== null) {
-        await maybeSetUserLocation(location, carcalSession);
-      }
     }
   }, [carcalSession, playerId]);
 
@@ -229,7 +226,7 @@ export default function App() {
           mediaList: media,
           caption,
           location,
-          taggedEntities,
+          taggedEntities: taggedEntities as any,
           association_id: messageData?.association_id,
           association_type: messageData?.association_type,
           onUpload: () => {
@@ -298,7 +295,7 @@ export default function App() {
           const isRunning = BackgroundService.isRunning();
 
           if (isRunning) {
-            Alert.alert('CarCalendar', 'Please wait for the current post to finish uploading', [
+            Alert.alert('DriveLife', 'Please wait for the current post to finish uploading', [
               { text: 'OK' }
             ]);
             return;
@@ -323,6 +320,9 @@ export default function App() {
         case 'signOut':
           await setUserAsInactive(carcalSession, playerId);
           setCarcalSession(null);
+          break;
+        case 'openSettings':
+          Linking.openSettings();
           break;
         default:
           break;

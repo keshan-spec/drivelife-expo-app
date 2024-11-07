@@ -11,13 +11,13 @@
     <key>CFBundleIdentifier</key>
     <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
     <key>CFBundleInfoDictionaryVersion</key>
-    <string>3.3.0</string>
+    <string>3.3.1</string>
     <key>CFBundleName</key>
     <string>$(PRODUCT_NAME)</string>
     <key>CFBundlePackageType</key>
     <string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
     <key>CFBundleShortVersionString</key>
-    <string>3.3.0</string>
+    <string>3.3.1</string>
     <key>CFBundleSignature</key>
     <string>????</string>
     <key>CFBundleURLTypes</key>
@@ -37,7 +37,7 @@
       </dict>
     </array>
     <key>CFBundleVersion</key>
-    <string>3.3.0</string>
+    <string>3.3.1</string>
     <key>LSRequiresIPhoneOS</key>
     <true/>
     <key>NSAppTransportSecurity</key>
@@ -59,10 +59,6 @@
     <string>This app uses the camera to allow you to take photos to create posts.</string>
     <key>NSFileProviderUsageDescription</key>
     <string>This app uses file provider permissions to access files for posts.</string>
-    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-    <string>This app uses accurate location data to allow users to browse and search for events/venues by proximity.</string>
-    <key>NSLocationAlwaysUsageDescription</key>
-    <string>This app uses accurate location data to allow users to browse and search for events/venues by proximity.</string>
     <key>NSLocationWhenInUseUsageDescription</key>
     <string>This app uses accurate location data to allow users to browse and search for events/venues by proximity.</string>
     <key>NSMicrophoneUsageDescription</key>

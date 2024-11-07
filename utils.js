@@ -123,11 +123,11 @@ export async function GetAllPermissions() {
         } else if (Platform.OS === "ios") {
             const {
                 status
-            } = await requestNotifications(['alert', 'sound', 'badge', '']);
+            } = await requestNotifications(['alert', 'sound', 'badge']);
 
             const permissions = [
                 PERMISSIONS.IOS.LOCATION_WHEN_IN_USE,
-                PERMISSIONS.IOS.LOCATION_ALWAYS,
+                // PERMISSIONS.IOS.LOCATION_ALWAYS,
             ];
 
             const results = {
@@ -163,26 +163,6 @@ export const requestIOSMediaPermissions = async () => {
 
     return results;
 }
-
-
-// export async function GetAllPermissions() {
-//     try {
-//         if (Platform.OS === "android") {
-//             const userResponse = await PermissionsAndroid.requestMultiple([
-//                 PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-//                 PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION,
-//                 PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
-//             ]);
-//             return userResponse;
-//         } else if (Platform.OS === "ios") {
-//             // ios permissions
-//             return null;
-//         }
-//     } catch (err) {
-//         console.log(err);
-//     }
-//     return null;
-// }
 
 export const associateDeviceWithUser = async (uid, token) => {
     // send request to server to save token

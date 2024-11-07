@@ -27,8 +27,6 @@
         "NSCameraUsageDescription": "This app uses the camera to allow you to take photos to create posts.",
         "NSMicrophoneUsageDescription": "This app uses the microphone to allow you to record audio to create posts.",
         "NSLocationWhenInUseUsageDescription": "This app uses accurate location data to allow users to browse and search for events/venues by proximity.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "This app uses accurate location data to allow users to browse and search for events/venues by proximity.",
-        "NSLocationAlwaysUsageDescription": "This app uses accurate location data to allow users to browse and search for events/venues by proximity.",
         "NSPhotoLibraryUsageDescription": "This app uses photo library permissions to access images and videos for posts.",
         "NSPhotoLibraryAddUsageDescription": "This app uses photo library permissions to save images and videos.",
         "NSFileProviderUsageDescription": "This app uses file provider permissions to access files for posts.",

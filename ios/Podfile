@@ -11,7 +11,7 @@ ENV['EX_DEV_CLIENT_NETWORK_INSPECTOR'] = '1' if podfile_properties['EX_DEV_CLIEN
 
 setup_permissions([
   'Camera',
-  'LocationAccuracy',
+  # 'LocationAccuracy',
   'LocationWhenInUse',
   'MediaLibrary',
   'Notifications',

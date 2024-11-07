@@ -233,15 +233,16 @@ export default function App() {
     setExternalId();
   }, [carcalSession]);
 
+  useEffect(() => {
+    if (location && location !== null) {
+      maybeSetUserLocation(location, carcalSession);
+    }
+  }, [location]);
+
   // Set the external user id in OneSignal
   const setExternalId = useCallback(async () => {
     if (carcalSession && playerId) {
-      const response = await associateDeviceWithUser(carcalSession, playerId);
-      console.log('response', response);
-
-      if (location && location !== null) {
-        await maybeSetUserLocation(location, carcalSession);
-      }
+      associateDeviceWithUser(carcalSession, playerId);
     }
   }, [carcalSession, playerId]);
 
@@ -359,6 +360,9 @@ export default function App() {
         case 'signOut':
           await setUserAsInactive(carcalSession, playerId);
           setCarcalSession(null);
+          break;
+        case 'openSettings':
+          Linking.openSettings();
           break;
         default:
           break;

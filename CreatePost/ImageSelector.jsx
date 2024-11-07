@@ -92,12 +92,12 @@ const ImageSelector = ({ navigation, onClose }) => {
                 setHasPermission(true);
             }
 
-            let mediaType = ['video', 'photo'];
+            let mediaType = [/*'video',*/ 'photo'];
             let albumId = null;
 
             if (mediaFilter) {
                 if (mediaFilter.id === 'all') {
-                    mediaType = ['video', 'photo'];
+                    mediaType = [/*'video',*/ 'photo'];
                 } else {
                     mediaType = mediaFilter.mediaType;
                     albumId = mediaFilter.id;

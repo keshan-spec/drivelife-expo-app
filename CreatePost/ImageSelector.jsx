@@ -548,5 +548,5 @@ const styles = StyleSheet.create({
     },
 });
 
-export default ImageSelector;
+export default React.memo(ImageSelector);
 

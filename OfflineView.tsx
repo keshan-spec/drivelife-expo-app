@@ -1,7 +1,7 @@
 import { Image, Text, TouchableOpacity, View } from "react-native";
 import React from "react";
 
-export const OfflineView = ({
+const OfflineView = ({
     refresh,
 }: {
     refresh: () => void;
@@ -42,3 +42,5 @@ export const OfflineView = ({
         </View>
     );
 };
+
+export default OfflineView;

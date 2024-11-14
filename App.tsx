@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { SafeAreaView, AppState, Alert, Linking, BackHandler, Platform, StatusBar, View, Image } from "react-native";
+import { SafeAreaView, AppState, Alert, Linking, BackHandler, Platform, StatusBar, View, Image, AppStateStatus } from "react-native";
 import { WebView, WebViewMessageEvent } from 'react-native-webview';
 
 import 'expo-dev-client';
@@ -10,17 +10,16 @@ import * as Notifications from 'expo-notifications';
 import BackgroundService from 'react-native-background-actions';
 
 // https://stackoverflow.com/questions/54075629/reactnative-permission-always-return-never-ask-again
-import { associateDeviceWithUser, GetAllPermissions, maybeSetUserLocation, setUserAsInactive } from './utils';
 import CreatePost from "./CreatePost/CreatePostPage";
+import { associateDeviceWithUser, GetAllPermissions, maybeSetUserLocation, setUserAsInactive } from './utils';
 import { addPost } from "./CreatePost/actions/create-post";
 import { CreatePostProps, WebMessage } from 'types';
 
 // get poppin font
 import { useFonts } from 'expo-font';
-
 import { Poppins_500Medium, Poppins_700Bold } from "@expo-google-fonts/poppins";
 import { useNetInfoInstance } from "@react-native-community/netinfo";
-import { OfflineView } from './OfflineView';
+import OfflineView from './OfflineView';
 
 const URL = Constants.expoConfig?.extra?.appUrl || 'https://app.mydrivelife.com';
 
@@ -43,18 +42,15 @@ export default function App() {
   const [playerId, setPlayerId] = useState('');
   const [location, setLocation] = useState<Coords>();
   const [permissionsLocation, setPermissionsLocation] = useState({ denied: false, granted: false });
-
-  const [view, setView] = useState('webview');
-
+  const [deepLinkUrl, setDeepLinkUrl] = useState('');
   const [messageData, setMessageData] = useState<WebMessage>();
 
   const appState = useRef(AppState.currentState);
   const webViewRef = useRef<WebView | null>(null);
 
-  const [deepLinkUrl, setDeepLinkUrl] = useState('');
-
   // This state saves whether your WebView can go back
   const [webViewcanGoBack, setWebViewcanGoBack] = useState(false);
+  const [view, setView] = useState('webview');
 
   const { netInfo: { isConnected }, refresh } = useNetInfoInstance();
 
@@ -107,6 +103,18 @@ export default function App() {
     }
   };
 
+  const appStateChange = useCallback((nextAppState: AppStateStatus) => {
+    if (nextAppState === 'active' && appState.current !== 'active') {
+      console.log('App has come to the foreground!', permissionsLocation, appState.current);
+
+      if (permissionsLocation.granted) {
+        getCurrentPosition();
+      }
+    }
+    appState.current = nextAppState;
+  }, [permissionsLocation]);
+
+  // OneSignal Initialization
   useEffect(() => {
     // Handle user clicking on a notification and open the screen
     const handleNotificationClick = async (response: Notifications.NotificationResponse) => {
@@ -117,16 +125,13 @@ export default function App() {
       }
     };
 
+    const handleUrl = (url: { url: string; }) => {
+      setDeepLinkUrl(url.url);
+    };
+
     // Listen for user clicking on a notification
     const notificationClickSubscription = Notifications.addNotificationResponseReceivedListener(handleNotificationClick);
 
-    return () => {
-      notificationClickSubscription.remove();
-    };
-  }, []);
-
-  // OneSignal Initialization
-  useEffect(() => {
     OneSignal.setAppId(Constants.expoConfig?.extra?.onesignal.app_id);
 
     OneSignal.addSubscriptionObserver((event) => {
@@ -153,8 +158,13 @@ export default function App() {
       }
     });
 
+    // Add listener for deep links
+    const linkingSubscription = Linking.addEventListener('url', handleUrl);
+
     return () => {
       OneSignal.clearHandlers();
+      notificationClickSubscription.remove();
+      linkingSubscription.remove();
     };
   }, []);
 
@@ -169,26 +179,11 @@ export default function App() {
 
   // Event listeners
   useEffect(() => {
-    const handleUrl = (url: { url: string; }) => {
-      setDeepLinkUrl(url.url);
-    };
-
-    // Add listener for deep links
-    const linkingSubscription = Linking.addEventListener('url', handleUrl);
-
     // Handle AppState changes
-    const appStateSubscription = AppState.addEventListener('change', (nextAppState) => {
-      if (nextAppState === 'active' && appState.current !== 'active') {
-        if (permissionsLocation.granted) {
-          getCurrentPosition();
-        }
-      }
-      appState.current = nextAppState;
-    });
+    const appStateSubscription = AppState.addEventListener('change', appStateChange);
 
     // Clean up listeners on unmount
     return () => {
-      linkingSubscription.remove();
       appStateSubscription.remove();
     };
   }, [permissionsLocation]);
